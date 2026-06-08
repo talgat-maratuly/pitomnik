@@ -1,52 +1,51 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { NurseryObject } from '../../entities/nursery-object.entity';
 import { CreateObjectDto } from './dto/create-object.dto';
 import { UpdateObjectDto } from './dto/update-object.dto';
 
 @Injectable()
 export class ObjectsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(NurseryObject)
+    private readonly objectRepo: Repository<NurseryObject>,
+  ) {}
 
   findAll() {
-    return this.prisma.object.findMany({
-      orderBy: { name: 'asc' },
-      include: { sections: { orderBy: { code: 'asc' } } },
+    return this.objectRepo.find({
+      relations: { sections: true },
+      order: { name: 'ASC', sections: { code: 'ASC' } },
     });
   }
 
   async findOne(id: number) {
-    const row = await this.prisma.object.findUnique({
+    const row = await this.objectRepo.findOne({
       where: { id },
-      include: { sections: { orderBy: { code: 'asc' } } },
+      relations: { sections: true },
     });
     if (!row) throw new NotFoundException('Объект не найден');
+    row.sections.sort((a, b) => a.code.localeCompare(b.code));
     return row;
   }
 
   create(dto: CreateObjectDto) {
-    return this.prisma.object.create({
-      data: {
-        name: dto.name.trim(),
-        description: dto.description?.trim() || null,
-      },
+    const row = this.objectRepo.create({
+      name: dto.name.trim(),
+      description: dto.description?.trim() || null,
     });
+    return this.objectRepo.save(row);
   }
 
   async update(id: number, dto: UpdateObjectDto) {
-    await this.findOne(id);
-    return this.prisma.object.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.description !== undefined
-          ? { description: dto.description?.trim() || null }
-          : {}),
-      },
-    });
+    const row = await this.findOne(id);
+    if (dto.name !== undefined) row.name = dto.name.trim();
+    if (dto.description !== undefined) row.description = dto.description?.trim() || null;
+    return this.objectRepo.save(row);
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-    return this.prisma.object.delete({ where: { id } });
+    const row = await this.findOne(id);
+    return this.objectRepo.remove(row);
   }
 }

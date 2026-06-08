@@ -4,36 +4,41 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { WorkType } from '../../entities/work-type.entity';
 import { CreateWorkTypeDto } from './dto/create-work-type.dto';
 import { UpdateWorkTypeDto } from './dto/update-work-type.dto';
 
 @Injectable()
 export class WorkTypesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(WorkType)
+    private readonly workTypeRepo: Repository<WorkType>,
+  ) {}
 
   findAll() {
-    return this.prisma.workType.findMany({ orderBy: { name: 'asc' } });
+    return this.workTypeRepo.find({ order: { name: 'ASC' } });
   }
 
   findActive() {
-    return this.prisma.workType.findMany({
+    return this.workTypeRepo.find({
       where: { isActive: true },
-      orderBy: { name: 'asc' },
+      order: { name: 'ASC' },
     });
   }
 
   async findOne(id: number) {
-    const row = await this.prisma.workType.findUnique({ where: { id } });
+    const row = await this.workTypeRepo.findOne({ where: { id } });
     if (!row) throw new NotFoundException('Вид работы не найден');
     return row;
   }
 
   private async hasDuplicateName(name: string, excludeId?: number): Promise<boolean> {
     const normalized = name.trim().toLowerCase();
-    const all = await this.prisma.workType.findMany({
-      where: excludeId ? { NOT: { id: excludeId } } : undefined,
-    });
+    const qb = this.workTypeRepo.createQueryBuilder('wt');
+    if (excludeId) qb.where('wt.id != :excludeId', { excludeId });
+    const all = await qb.getMany();
     return all.some((t) => t.name.trim().toLowerCase() === normalized);
   }
 
@@ -45,17 +50,16 @@ export class WorkTypesService {
       throw new ConflictException('Такой вид работы уже есть');
     }
 
-    return this.prisma.workType.create({
-      data: {
-        name,
-        isActive: true,
-        isOther: name.toLowerCase() === 'другое',
-      },
+    const row = this.workTypeRepo.create({
+      name,
+      isActive: true,
+      isOther: name.toLowerCase() === 'другое',
     });
+    return this.workTypeRepo.save(row);
   }
 
   async update(id: number, dto: UpdateWorkTypeDto) {
-    await this.findOne(id);
+    const row = await this.findOne(id);
 
     if (dto.name !== undefined) {
       const name = dto.name.trim();
@@ -63,24 +67,15 @@ export class WorkTypesService {
       if (await this.hasDuplicateName(name, id)) {
         throw new ConflictException('Такой вид работы уже есть');
       }
+      row.name = name;
+      row.isOther = name.toLowerCase() === 'другое';
     }
-
-    return this.prisma.workType.update({
-      where: { id },
-      data: {
-        ...(dto.name !== undefined
-          ? {
-              name: dto.name.trim(),
-              isOther: dto.name.trim().toLowerCase() === 'другое',
-            }
-          : {}),
-        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
-      },
-    });
+    if (dto.isActive !== undefined) row.isActive = dto.isActive;
+    return this.workTypeRepo.save(row);
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-    return this.prisma.workType.delete({ where: { id } });
+    const row = await this.findOne(id);
+    return this.workTypeRepo.remove(row);
   }
 }

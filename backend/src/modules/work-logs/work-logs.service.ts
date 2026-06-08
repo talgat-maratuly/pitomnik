@@ -1,105 +1,108 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { InjectRepository } from '@nestjs/typeorm';
 import { endOfDay, parseISO, startOfDay, startOfMonth, subDays } from 'date-fns';
+import { Repository } from 'typeorm';
 import { serializePhotoUrls } from '../../common/photo-urls';
 import { mapWorkLogsWithPhotos, withPhotoUrlsArray } from '../../common/work-log-response';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Section } from '../../entities/section.entity';
+import { WorkLog } from '../../entities/work-log.entity';
+import { WorkType } from '../../entities/work-type.entity';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
 import { WorkLogQueryDto } from './dto/work-log-query.dto';
 
-const workLogInclude = {
-  section: { include: { object: true } },
-  workType: true,
-} as const;
-
 @Injectable()
 export class WorkLogsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(WorkLog)
+    private readonly workLogRepo: Repository<WorkLog>,
+    @InjectRepository(Section)
+    private readonly sectionRepo: Repository<Section>,
+    @InjectRepository(WorkType)
+    private readonly workTypeRepo: Repository<WorkType>,
+  ) {}
 
-  private buildWhere(query: WorkLogQueryDto): Prisma.WorkLogWhereInput {
-    const where: Prisma.WorkLogWhereInput = {};
-
+  private applyFilters(qb: ReturnType<Repository<WorkLog>['createQueryBuilder']>, query: WorkLogQueryDto) {
     if (query.dateFrom) {
-      where.submittedAt = {
-        ...(where.submittedAt as Prisma.DateTimeFilter | undefined),
-        gte: startOfDay(parseISO(query.dateFrom)),
-      };
+      qb.andWhere('workLog.submittedAt >= :dateFrom', {
+        dateFrom: startOfDay(parseISO(query.dateFrom)),
+      });
     }
     if (query.dateTo) {
-      where.submittedAt = {
-        ...(where.submittedAt as Prisma.DateTimeFilter | undefined),
-        lte: endOfDay(parseISO(query.dateTo)),
-      };
+      qb.andWhere('workLog.submittedAt <= :dateTo', {
+        dateTo: endOfDay(parseISO(query.dateTo)),
+      });
     }
     if (query.workerFullName?.trim()) {
-      where.workerFullName = { contains: query.workerFullName.trim() };
+      qb.andWhere('workLog.workerFullName ILIKE :worker', {
+        worker: `%${query.workerFullName.trim()}%`,
+      });
     }
     if (query.sectionId) {
-      where.sectionId = query.sectionId;
+      qb.andWhere('workLog.sectionId = :sectionId', { sectionId: query.sectionId });
     }
     if (query.workTypeId) {
-      where.workTypeId = query.workTypeId;
+      qb.andWhere('workLog.workTypeId = :workTypeId', { workTypeId: query.workTypeId });
     }
     if (query.objectId) {
-      where.section = { objectId: query.objectId };
+      qb.andWhere('section.objectId = :objectId', { objectId: query.objectId });
     }
+    return qb;
+  }
 
-    return where;
+  private baseQuery() {
+    return this.workLogRepo
+      .createQueryBuilder('workLog')
+      .leftJoinAndSelect('workLog.section', 'section')
+      .leftJoinAndSelect('section.object', 'object')
+      .leftJoinAndSelect('workLog.workType', 'workType');
   }
 
   async findAll(query: WorkLogQueryDto) {
-    const rows = await this.prisma.workLog.findMany({
-      where: this.buildWhere(query),
-      orderBy: { submittedAt: 'desc' },
-      include: workLogInclude,
-    });
+    const qb = this.applyFilters(this.baseQuery(), query);
+    qb.orderBy('workLog.submittedAt', 'DESC');
+    const rows = await qb.getMany();
     return mapWorkLogsWithPhotos(rows);
   }
 
   async findOne(id: number) {
-    const row = await this.prisma.workLog.findUnique({
-      where: { id },
-      include: workLogInclude,
-    });
+    const row = await this.baseQuery().where('workLog.id = :id', { id }).getOne();
     if (!row) throw new NotFoundException('Запись не найдена');
     return withPhotoUrlsArray(row);
   }
 
   async create(dto: CreateWorkLogDto) {
-    const section = await this.prisma.section.findUnique({ where: { id: dto.sectionId } });
+    const section = await this.sectionRepo.findOne({ where: { id: dto.sectionId } });
     if (!section) throw new NotFoundException('Участок не найден');
 
     if (dto.workTypeId) {
-      const wt = await this.prisma.workType.findUnique({ where: { id: dto.workTypeId } });
+      const wt = await this.workTypeRepo.findOne({ where: { id: dto.workTypeId } });
       if (!wt) throw new NotFoundException('Вид работы не найден');
     }
 
     const hasCoords = dto.latitude != null && dto.longitude != null;
 
-    const row = await this.prisma.workLog.create({
-      data: {
-        sectionId: dto.sectionId,
-        workerFullName: dto.workerFullName.trim(),
-        workTypeId: dto.workTypeId ?? null,
-        customWorkType: dto.customWorkType?.trim() || null,
-        workVolume: dto.workVolume.trim(),
-        comment: dto.comment?.trim() ?? '',
-        photoUrls: serializePhotoUrls(dto.photoUrls ?? []),
-        latitude: dto.latitude ?? null,
-        longitude: dto.longitude ?? null,
-        locationAccuracy: dto.locationAccuracy ?? null,
-        locationAllowed: dto.locationAllowed ?? hasCoords,
-        submittedAt: new Date(),
-      },
-      include: workLogInclude,
+    const row = this.workLogRepo.create({
+      sectionId: dto.sectionId,
+      workerFullName: dto.workerFullName.trim(),
+      workTypeId: dto.workTypeId ?? null,
+      customWorkType: dto.customWorkType?.trim() || null,
+      workVolume: dto.workVolume.trim(),
+      comment: dto.comment?.trim() ?? '',
+      photoUrls: serializePhotoUrls(dto.photoUrls ?? []),
+      latitude: dto.latitude ?? null,
+      longitude: dto.longitude ?? null,
+      locationAccuracy: dto.locationAccuracy ?? null,
+      locationAllowed: dto.locationAllowed ?? hasCoords,
+      submittedAt: new Date(),
     });
-    return withPhotoUrlsArray(row);
+    const saved = await this.workLogRepo.save(row);
+    return this.findOne(saved.id);
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-    const row = await this.prisma.workLog.delete({ where: { id }, include: workLogInclude });
-    return withPhotoUrlsArray(row);
+    const row = await this.findOne(id);
+    await this.workLogRepo.delete(id);
+    return row;
   }
 
   async getStats() {
@@ -108,19 +111,24 @@ export class WorkLogsService {
     const weekStart = subDays(now, 7);
     const monthStart = startOfMonth(now);
 
-    const [today, week, month, recent, allLogs, sections] = await Promise.all([
-      this.prisma.workLog.count({ where: { submittedAt: { gte: todayStart } } }),
-      this.prisma.workLog.count({ where: { submittedAt: { gte: weekStart } } }),
-      this.prisma.workLog.count({ where: { submittedAt: { gte: monthStart } } }),
-      this.prisma.workLog.findMany({
-        take: 8,
-        orderBy: { submittedAt: 'desc' },
-        include: workLogInclude,
-      }),
-      this.prisma.workLog.findMany({
+    const [todayCount, week, month, recent, allLogs, sections] = await Promise.all([
+      this.workLogRepo
+        .createQueryBuilder('workLog')
+        .where('workLog.submittedAt >= :todayStart', { todayStart })
+        .getCount(),
+      this.workLogRepo
+        .createQueryBuilder('workLog')
+        .where('workLog.submittedAt >= :weekStart', { weekStart })
+        .getCount(),
+      this.workLogRepo
+        .createQueryBuilder('workLog')
+        .where('workLog.submittedAt >= :monthStart', { monthStart })
+        .getCount(),
+      this.baseQuery().orderBy('workLog.submittedAt', 'DESC').take(8).getMany(),
+      this.workLogRepo.find({
         select: { workerFullName: true, sectionId: true, submittedAt: true },
       }),
-      this.prisma.section.findMany({ include: { object: true } }),
+      this.sectionRepo.find({ relations: { object: true } }),
     ]);
 
     const workerCounts = new Map<string, number>();
@@ -157,7 +165,7 @@ export class WorkLogsService {
       .slice(0, 8);
 
     return {
-      today,
+      today: todayCount,
       week,
       month,
       recent: mapWorkLogsWithPhotos(recent),

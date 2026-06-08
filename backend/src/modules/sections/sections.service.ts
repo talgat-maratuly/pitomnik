@@ -1,91 +1,90 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { nextSectionCode } from '../../common/section-code';
 import { buildFormUrl, buildQrApiUrl } from '../../common/app-url';
+import { NurseryObject } from '../../entities/nursery-object.entity';
+import { Section } from '../../entities/section.entity';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 
-const sectionInclude = {
-  object: true,
-} as const;
-
 @Injectable()
 export class SectionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Section)
+    private readonly sectionRepo: Repository<Section>,
+    @InjectRepository(NurseryObject)
+    private readonly objectRepo: Repository<NurseryObject>,
+    private readonly dataSource: DataSource,
+  ) {}
 
   findAll() {
-    return this.prisma.section.findMany({
-      orderBy: { code: 'asc' },
-      include: sectionInclude,
+    return this.sectionRepo.find({
+      relations: { object: true },
+      order: { code: 'ASC' },
     });
   }
 
   async findOne(id: number) {
-    const row = await this.prisma.section.findUnique({
+    const row = await this.sectionRepo.findOne({
       where: { id },
-      include: sectionInclude,
+      relations: { object: true },
     });
     if (!row) throw new NotFoundException('Участок не найден');
     return row;
   }
 
   async findByCode(code: string) {
-    const row = await this.prisma.section.findUnique({
+    const row = await this.sectionRepo.findOne({
       where: { code },
-      include: sectionInclude,
+      relations: { object: true },
     });
     if (!row) throw new NotFoundException('Участок не найден');
     return row;
   }
 
   async create(dto: CreateSectionDto) {
-    const object = await this.prisma.object.findUnique({ where: { id: dto.objectId } });
+    const object = await this.objectRepo.findOne({ where: { id: dto.objectId } });
     if (!object) throw new NotFoundException('Объект не найден');
 
-    const code = await nextSectionCode(this.prisma);
+    const code = await nextSectionCode(this.dataSource);
     const formUrl = buildFormUrl(code);
     const qrCodeUrl = buildQrApiUrl(code);
 
-    return this.prisma.section.create({
-      data: {
-        objectId: dto.objectId,
-        code,
-        name: dto.name.trim(),
-        area: dto.area?.trim() || null,
-        culture: dto.culture?.trim() || null,
-        customText: dto.customText?.trim() || null,
-        formUrl,
-        qrCodeUrl,
-      },
-      include: sectionInclude,
+    const row = this.sectionRepo.create({
+      objectId: dto.objectId,
+      code,
+      name: dto.name.trim(),
+      area: dto.area?.trim() || null,
+      culture: dto.culture?.trim() || null,
+      customText: dto.customText?.trim() || null,
+      formUrl,
+      qrCodeUrl,
     });
+    const saved = await this.sectionRepo.save(row);
+    return this.findOne(saved.id);
   }
 
   async update(id: number, dto: UpdateSectionDto) {
-    await this.findOne(id);
+    const row = await this.findOne(id);
     if (dto.objectId !== undefined) {
-      const object = await this.prisma.object.findUnique({ where: { id: dto.objectId } });
+      const object = await this.objectRepo.findOne({ where: { id: dto.objectId } });
       if (!object) throw new NotFoundException('Объект не найден');
+      row.objectId = dto.objectId;
     }
-
-    return this.prisma.section.update({
-      where: { id },
-      data: {
-        ...(dto.objectId !== undefined ? { objectId: dto.objectId } : {}),
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.area !== undefined ? { area: dto.area?.trim() || null } : {}),
-        ...(dto.culture !== undefined ? { culture: dto.culture?.trim() || null } : {}),
-        ...(dto.customText !== undefined ? { customText: dto.customText?.trim() || null } : {}),
-        ...(dto.latitude !== undefined ? { latitude: dto.latitude } : {}),
-        ...(dto.longitude !== undefined ? { longitude: dto.longitude } : {}),
-        ...(dto.radiusMeters !== undefined ? { radiusMeters: dto.radiusMeters } : {}),
-      },
-      include: sectionInclude,
-    });
+    if (dto.name !== undefined) row.name = dto.name.trim();
+    if (dto.area !== undefined) row.area = dto.area?.trim() || null;
+    if (dto.culture !== undefined) row.culture = dto.culture?.trim() || null;
+    if (dto.customText !== undefined) row.customText = dto.customText?.trim() || null;
+    if (dto.latitude !== undefined) row.latitude = dto.latitude;
+    if (dto.longitude !== undefined) row.longitude = dto.longitude;
+    if (dto.radiusMeters !== undefined) row.radiusMeters = dto.radiusMeters;
+    await this.sectionRepo.save(row);
+    return this.findOne(id);
   }
 
   async remove(id: number) {
-    await this.findOne(id);
-    return this.prisma.section.delete({ where: { id } });
+    const row = await this.findOne(id);
+    return this.sectionRepo.remove(row);
   }
 }

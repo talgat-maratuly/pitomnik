@@ -1,14 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as QRCode from 'qrcode';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Repository } from 'typeorm';
 import { buildFormUrl } from '../../common/app-url';
+import { Section } from '../../entities/section.entity';
 
 @Injectable()
 export class QrService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectRepository(Section)
+    private readonly sectionRepo: Repository<Section>,
+  ) {}
 
   async getFormUrlBySectionCode(sectionCode: string): Promise<string> {
-    const section = await this.prisma.section.findUnique({ where: { code: sectionCode } });
+    const section = await this.sectionRepo.findOne({ where: { code: sectionCode } });
     if (!section) throw new NotFoundException('Участок не найден');
     return section.formUrl ?? buildFormUrl(sectionCode);
   }

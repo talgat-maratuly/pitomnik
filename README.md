@@ -1,23 +1,33 @@
 # Питомник — QR-отчёты о работах
 
-Полностью **локальный** стек: SQLite + NestJS + React. Docker и PostgreSQL не нужны.
+Стек: **PostgreSQL + TypeORM + NestJS + React**.
 
 ## Быстрый старт
 
-### 1. Backend (база SQLite создаётся автоматически)
+### 1. PostgreSQL
+
+Создайте базу данных (локально или в Docker):
+
+```bash
+docker run --name pitomnik-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=pitomnik -p 5432:5432 -d postgres:16
+```
+
+### 2. Backend
 
 ```bash
 cd backend
 npm install
-npx prisma migrate dev
-npx prisma db seed
+cp .env.example .env
+npm run migration:run
+npm run seed
 npm run start:dev
 ```
 
-API: **http://localhost:3001/api**  
-База: `backend/prisma/dev.db`
+API: **http://localhost:3001/api**
 
-### 2. Frontend
+Миграции применяются автоматически при старте (`DB_MIGRATE=true`).
+
+### 3. Frontend
 
 В корне проекта:
 
@@ -33,7 +43,10 @@ npm run dev
 ### Frontend (`.env`)
 
 ```
+# API
 VITE_API_URL=http://localhost:3001/api
+
+# App
 VITE_APP_URL=http://localhost:5173
 VITE_NURSERY_NAME=Питомник основной
 ```
@@ -41,17 +54,25 @@ VITE_NURSERY_NAME=Питомник основной
 ### Backend (`backend/.env`)
 
 ```
-DATABASE_URL="file:./dev.db"
+# Database Configuration (PostgreSQL)
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USERNAME=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_NAME=pitomnik
+
+# Server & URLs
 PORT=3001
 FRONTEND_URL=http://localhost:5173
 API_PUBLIC_URL=http://localhost:3001
+DB_MIGRATE=true
 ```
 
 ## Что где хранится
 
 | Данные | Где |
 |--------|-----|
-| Объекты, участки, журнал, виды работ | SQLite `backend/prisma/dev.db` |
+| Объекты, участки, журнал, виды работ | PostgreSQL |
 | Фото | `backend/uploads/photos/` |
 | Тексты формы (заголовок, подсказки) | localStorage браузера |
 
@@ -64,6 +85,6 @@ API_PUBLIC_URL=http://localhost:3001
 ## Структура
 
 ```
-backend/          NestJS + Prisma + SQLite
+backend/          NestJS + TypeORM + PostgreSQL
 src/              React frontend
 ```
