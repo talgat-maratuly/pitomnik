@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { join } from 'path';
 import { ObjectsModule } from './modules/objects/objects.module';
 import { SectionsModule } from './modules/sections/sections.module';
 import { WorkTypesModule } from './modules/work-types/work-types.module';
@@ -19,7 +20,15 @@ import {
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        'apps/api/.env',
+        '.env',
+        join(__dirname, '..', '.env'),
+        join(__dirname, '..', '..', '.env'),
+      ],
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

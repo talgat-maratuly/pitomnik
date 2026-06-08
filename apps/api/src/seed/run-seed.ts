@@ -1,11 +1,16 @@
 import 'reflect-metadata';
-import { config } from 'dotenv';
 import { DataSource } from 'typeorm';
+import { loadEnvFiles } from '../database/load-env';
 import { getTypeOrmPostgresOptions } from '../database/database.config';
-import { SectionCodeCounter } from '../entities/section-code-counter.entity';
-import { WorkType } from '../entities/work-type.entity';
+import {
+  NurseryObject,
+  Section,
+  SectionCodeCounter,
+  WorkLog,
+  WorkType,
+} from '../entities';
 
-config();
+loadEnvFiles();
 
 const DEFAULT_WORK_TYPES = [
   'Полив',
@@ -21,7 +26,7 @@ const DEFAULT_WORK_TYPES = [
 async function main() {
   const dataSource = new DataSource({
     ...getTypeOrmPostgresOptions(),
-    entities: [WorkType, SectionCodeCounter],
+    entities: [NurseryObject, Section, WorkType, WorkLog, SectionCodeCounter],
   });
   await dataSource.initialize();
 

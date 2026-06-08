@@ -1,5 +1,5 @@
 {
-  "name": "pitomnik-backend",
+  "name": "@pitomnik/api",
   "version": "1.0.0",
   "private": true,
   "scripts": {

@@ -1,4 +1,4 @@
-import { config } from 'dotenv';
+import { loadEnvFiles } from './load-env';
 import { DataSource } from 'typeorm';
 import { getTypeOrmPostgresOptions } from './database.config';
 import {
@@ -9,7 +9,7 @@ import {
   WorkType,
 } from '../entities';
 
-config();
+loadEnvFiles();
 
 export default new DataSource({
   ...getTypeOrmPostgresOptions(),

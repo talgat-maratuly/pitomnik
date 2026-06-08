@@ -1,57 +1,70 @@
 # Питомник — QR-отчёты о работах
 
-Стек: **PostgreSQL + TypeORM + NestJS + React**.
+Monorepo: **PostgreSQL + TypeORM + NestJS + React**.
+
+```
+pitomnik/
+├── apps/
+│   ├── api/          @pitomnik/api   — NestJS backend (:3001)
+│   └── web/          @pitomnik/web   — React frontend (:5173)
+├── scripts/
+│   └── dev-all.mjs   — запуск api + web одной командой
+└── package.json      — npm workspaces
+```
 
 ## Быстрый старт
 
-### 1. PostgreSQL
-
-Создайте базу данных (локально или в Docker):
+### 1. Установка
 
 ```bash
-docker run --name pitomnik-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=pitomnik -p 5432:5432 -d postgres:16
-```
-
-### 2. Backend
-
-```bash
-cd backend
 npm install
 cp .env.example .env
-npm run migration:run
-npm run seed
-npm run start:dev
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
 ```
 
-API: **http://localhost:3001/api**
+### 2. PostgreSQL
 
-Миграции применяются автоматически при старте (`DB_MIGRATE=true`).
+Локально орнатылған PostgreSQL қажет. `pitomnik` базасын жасап, `apps/api/.env` параметрлерін өз ортаңызға сәйкес толтырыңыз.
 
-### 3. Frontend
-
-В корне проекта:
+### 3. Миграции и seed (первый раз)
 
 ```bash
-npm install
+npm run migration:run
+npm run seed
+```
+
+### 4. Запуск (api + web вместе)
+
+```bash
 npm run dev
 ```
 
-Приложение: **http://localhost:5173/admin**
+| Сервис | URL |
+|--------|-----|
+| Админка | http://localhost:5173/admin |
+| API | http://localhost:3001/api |
+
+Отдельно:
+```bash
+npm run dev:api    # только backend
+npm run dev:web    # только frontend
+```
 
 ## Переменные окружения
 
-### Frontend (`.env`)
+### `apps/web/.env`
 
 ```
-# API
-VITE_API_URL=http://localhost:3001/api
+# API (dev: Vite proxy → localhost:3001)
+VITE_API_URL=/api
 
 # App
 VITE_APP_URL=http://localhost:5173
 VITE_NURSERY_NAME=Питомник основной
 ```
 
-### Backend (`backend/.env`)
+### `apps/api/.env`
 
 ```
 # Database Configuration (PostgreSQL)
@@ -73,18 +86,11 @@ DB_MIGRATE=true
 | Данные | Где |
 |--------|-----|
 | Объекты, участки, журнал, виды работ | PostgreSQL |
-| Фото | `backend/uploads/photos/` |
-| Тексты формы (заголовок, подсказки) | localStorage браузера |
+| Фото | `apps/api/uploads/photos/` |
+| Тексты формы | localStorage браузера |
 
 ## Цепочка
 
 ```
 Объект → Участок → QR → /work-form/PIT-001 → отчёт → журнал → Excel
-```
-
-## Структура
-
-```
-backend/          NestJS + TypeORM + PostgreSQL
-src/              React frontend
 ```

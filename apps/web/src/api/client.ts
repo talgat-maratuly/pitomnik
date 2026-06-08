@@ -1,7 +1,9 @@
 const API_BASE =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:3001/api'
+  import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '/api'
 
-export const API_ORIGIN = API_BASE.replace(/\/api$/, '') || 'http://localhost:3001'
+export const API_ORIGIN = API_BASE.startsWith('http')
+  ? API_BASE.replace(/\/api$/, '')
+  : ''
 
 export function resolveAssetUrl(path: string): string {
   if (!path) return path
@@ -36,7 +38,7 @@ function isNetworkError(err: unknown): boolean {
 export function toUserMessage(err: unknown, fallback = 'Не удалось сохранить данные'): string {
   if (err instanceof ApiError) {
     if (err.status === 0 || isNetworkError(err.cause)) {
-      return 'Backend не запущен. Запустите сервер: cd backend && npm run start:dev'
+      return 'Backend не запущен. Запустите: npm run dev:api'
     }
     return err.message || fallback
   }
