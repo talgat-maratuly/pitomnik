@@ -10,6 +10,7 @@ import { QrPage } from '@/pages/admin/QrPage'
 import { WorkTypesPage } from '@/pages/admin/WorkTypesPage'
 import { WorkFormPage } from '@/pages/WorkFormPage'
 import { FormSettingsPage } from '@/pages/admin/FormSettingsPage'
+import { SeedPage } from '@/pages/admin/SeedPage'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="form-settings" element={<FormSettingsPage />} />
           <Route path="export" element={<ExportPage />} />
           <Route path="photos" element={<PhotosPage />} />
+          <Route path="seed" element={<SeedPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

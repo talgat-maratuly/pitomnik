@@ -11,6 +11,7 @@ const nav = [
   { to: '/admin/form-settings', label: 'Настройки формы' },
   { to: '/admin/export', label: 'Экспорт Excel' },
   { to: '/admin/photos', label: 'Фотоотчёты' },
+  { to: '/admin/seed', label: 'Seed запуск' },
 ]
 
 export function AdminLayout() {
