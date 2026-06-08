@@ -1,0 +1,61 @@
+services:
+  pitomnik-api:
+    container_name: pitomnik-api
+    image: ${API_IMAGE}
+    restart: always
+    env_file: .env
+    environment:
+      DATABASE_HOST: pitomnik-postgres
+      DATABASE_PORT: 5432
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: ${DB_PASSWORD}
+      DATABASE_NAME: pitomnik
+      PORT: 3001
+      FRONTEND_URL: ${FRONTEND_URL}
+      API_PUBLIC_URL: ${API_PUBLIC_URL}
+      DB_MIGRATE: ${DB_MIGRATE:-true}
+      NODE_ENV: production
+    ports:
+      - '127.0.0.1:3001:3001'
+    volumes:
+      - ./uploads:/app/uploads
+    depends_on:
+      pitomnik-postgres:
+        condition: service_healthy
+    networks:
+      - pitomnik-network
+    logging:
+      driver: json-file
+      options:
+        max-size: '2M'
+        max-file: '5'
+
+  pitomnik-postgres:
+    container_name: pitomnik-postgres
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      TZ: UTC
+      PGTZ: UTC
+      POSTGRES_DB: pitomnik
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    expose:
+      - '5432'
+    volumes:
+      - pitomnik_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d pitomnik']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - pitomnik-network
+
+volumes:
+  pitomnik_postgres_data:
+    name: pitomnik_postgres_data
+
+networks:
+  pitomnik-network:
+    driver: bridge

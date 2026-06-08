@@ -97,3 +97,13 @@ DB_MIGRATE=true
 ```
 Объект → Участок → QR → /work-form/PIT-001 → отчёт → журнал → Excel
 ```
+
+## Деплой (production)
+
+- **API** — Docker (GHCR image + Postgres) на сервере `/opt/pitomnik/api`
+- **Web** — статический Vite build + nginx на `/opt/pitomnik/web`
+- **CI/CD** — GitHub Actions (`deploy-api.yml`, `deploy-web.yml`)
+
+Secrets: `DB_PASSWORD`, `SSH_PRIVATE_KEY`. Variables: `SSH_HOST`, `SSH_USER`, `FRONTEND_URL`, `API_PUBLIC_URL`.
+
+Подробно: [deploy/README.md](deploy/README.md)
