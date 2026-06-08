@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { WorkTypesService } from './work-types.service';
 import { CreateWorkTypeDto } from './dto/create-work-type.dto';
 import { UpdateWorkTypeDto } from './dto/update-work-type.dto';
 
+@ApiTags('work-types')
 @Controller('work-types')
 export class WorkTypesController {
   constructor(private readonly workTypesService: WorkTypesService) {}

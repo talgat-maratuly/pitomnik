@@ -34,6 +34,8 @@ npm run migration:run
 npm run seed
 ```
 
+Seed можно также запустить через Swagger: `POST /api/seed/run` на http://localhost:3001/api/docs
+
 ### 4. Запуск (api + web вместе)
 
 ```bash
@@ -44,6 +46,7 @@ npm run dev
 |--------|-----|
 | Админка | http://localhost:5173/admin |
 | API | http://localhost:3001/api |
+| Swagger | http://localhost:3001/api/docs |
 
 Отдельно:
 ```bash

@@ -1,8 +1,10 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ExportService } from './export.service';
 import { WorkLogQueryDto } from '../work-logs/dto/work-log-query.dto';
 
+@ApiTags('export')
 @Controller('export')
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}

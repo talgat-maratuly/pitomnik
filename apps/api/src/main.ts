@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
 import { AppModule } from './app.module';
 
@@ -19,9 +20,19 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Питомник API')
+    .setDescription('QR-отчёты о работах в питомнике')
+    .setVersion('1.0')
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document, { useGlobalPrefix: true });
+
   const port = Number(process.env.PORT) || 3001;
   await app.listen(port);
   console.log(`Backend: http://localhost:${port}/api`);
+  console.log(`Swagger: http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

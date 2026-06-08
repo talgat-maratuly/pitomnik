@@ -8,10 +8,12 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { WorkLogsService } from './work-logs.service';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
 import { WorkLogQueryDto } from './dto/work-log-query.dto';
 
+@ApiTags('work-logs')
 @Controller('work-logs')
 export class WorkLogsController {
   constructor(private readonly workLogsService: WorkLogsService) {}

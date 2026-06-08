@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { ObjectsService } from './objects.service';
 import { CreateObjectDto } from './dto/create-object.dto';
 import { UpdateObjectDto } from './dto/update-object.dto';
 
+@ApiTags('objects')
 @Controller('objects')
 export class ObjectsController {
   constructor(private readonly objectsService: ObjectsService) {}

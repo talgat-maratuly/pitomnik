@@ -9,6 +9,7 @@ import { WorkLogsModule } from './modules/work-logs/work-logs.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { QrModule } from './modules/qr/qr.module';
 import { ExportModule } from './modules/export/export.module';
+import { SeedModule } from './seed/seed.module';
 import { getTypeOrmPostgresFromConfig } from './database/database.config';
 import {
   NurseryObject,
@@ -46,6 +47,7 @@ import {
     UploadsModule,
     QrModule,
     ExportModule,
+    SeedModule,
   ],
 })
 export class AppModule {}

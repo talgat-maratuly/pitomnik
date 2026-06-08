@@ -5,6 +5,7 @@ import {
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -13,6 +14,7 @@ import { UploadsService } from './uploads.service';
 
 const PHOTOS_DIR = join(process.cwd(), 'uploads', 'photos');
 
+@ApiTags('uploads')
 @Controller('uploads')
 export class UploadsController {
   constructor(private readonly uploadsService: UploadsService) {

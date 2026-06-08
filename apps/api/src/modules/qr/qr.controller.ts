@@ -1,7 +1,9 @@
 import { Controller, Get, Header, Param, Res } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { QrService } from './qr.service';
 
+@ApiTags('qr')
 @Controller('qr')
 export class QrController {
   constructor(private readonly qrService: QrService) {}
