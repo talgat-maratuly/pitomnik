@@ -1,0 +1,115 @@
+import { useEffect, useState } from 'react'
+import { QrPrintCard } from '@/components/QrPrintCard'
+import { Button } from '@/components/ui/Button'
+import { fetchSections } from '@/api/sectionsApi'
+import { API_ORIGIN, toUserMessage } from '@/api/client'
+import { buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import type { Section } from '@/lib/types'
+
+export function QrPage() {
+  const [sections, setSections] = useState<Section[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [printSectionCode, setPrintSectionCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    void fetchSections()
+      .then(setSections)
+      .catch((err) => {
+        console.error('[qr]', err)
+        setError(toUserMessage(err))
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const printSection = printSectionCode
+    ? sections.find((s) => s.code === printSectionCode) ?? null
+    : null
+
+  function downloadQrPng(section: Section) {
+    const a = document.createElement('a')
+    a.href = buildQrImageUrl(section.code)
+    a.download = `qr-${section.code}.png`
+    a.click()
+  }
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">QR-коды</h1>
+      <p className="text-sm text-slate-500">QR генерируется сервером: {API_ORIGIN}/api/qr/&#123;код&#125;</p>
+
+      {error && <p className="text-red-600">{error}</p>}
+      {loading ? (
+        <p className="text-slate-600">Загрузка…</p>
+      ) : sections.length === 0 ? (
+        <p className="text-slate-600">Участков пока нет</p>
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-600">
+              <tr>
+                <th className="px-3 py-3">Объект</th>
+                <th className="px-3 py-3">Участок</th>
+                <th className="px-3 py-3">Код</th>
+                <th className="px-3 py-3">Форма</th>
+                <th className="px-3 py-3">QR</th>
+                <th className="px-3 py-3">Действия</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sections.map((s) => {
+                const formUrl = buildWorkFormUrlBySectionCode(s.code)
+                return (
+                  <tr key={s.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-3">{s.objects?.name ?? '—'}</td>
+                    <td className="px-3 py-3">{s.name}</td>
+                    <td className="px-3 py-3 font-mono text-xs">{s.code}</td>
+                    <td className="px-3 py-3">
+                      <a href={formUrl} target="_blank" rel="noreferrer" className="text-emerald-700 underline break-all">
+                        {formUrl}
+                      </a>
+                    </td>
+                    <td className="px-3 py-3">
+                      <img src={buildQrImageUrl(s.code)} alt="QR" className="h-[90px] w-[90px]" />
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" onClick={() => downloadQrPng(s)}>
+                          Скачать PNG
+                        </Button>
+                        <Button onClick={() => window.open(formUrl, '_blank')}>Открыть форму</Button>
+                        <Button variant="ghost" onClick={() => setPrintSectionCode(s.code)}>
+                          Печать
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {printSection && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 print:relative print:bg-transparent">
+          <div className="print:block">
+            <QrPrintCard
+              section={printSection}
+              objectName={printSection.objects?.name ?? '—'}
+              formUrl={buildWorkFormUrlBySectionCode(printSection.code)}
+            />
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .qr-print-card, .qr-print-card * { visibility: visible; }
+          .qr-print-card { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
+    </div>
+  )
+}
