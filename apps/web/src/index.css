@@ -5,24 +5,79 @@ body {
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
   body * {
-    visibility: hidden;
+    visibility: hidden !important;
   }
 
   .qr-print-card,
   .qr-print-card * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   .qr-print-card {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: white;
+    position: fixed !important;
+    top: 20mm !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 100mm !important;
+    min-height: 140mm !important;
+    padding: 10mm !important;
+    background: white !important;
+    border: 2px solid #0f172a !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    text-align: center !important;
+    max-width: none !important;
+    margin: 0 !important;
   }
 
-  .no-print {
+  .qr-print-card img,
+  .qr-print-card canvas,
+  .qr-print-card svg {
+    width: 65mm !important;
+    height: 65mm !important;
+    margin: 8mm auto !important;
+    display: block !important;
+  }
+
+  .qr-print-card .qr-print-nursery {
+    font-size: 14pt !important;
+    font-weight: 700 !important;
+  }
+
+  .qr-print-card .qr-print-object {
+    font-size: 11pt !important;
+    margin-top: 2mm !important;
+  }
+
+  .qr-print-card .qr-print-section {
+    font-size: 16pt !important;
+    font-weight: 600 !important;
+    margin-top: 4mm !important;
+  }
+
+  .qr-print-card .qr-print-code {
+    font-size: 11pt !important;
+    margin-top: 2mm !important;
+  }
+
+  .qr-print-card .qr-print-instruction {
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+    margin-top: 4mm !important;
+  }
+
+  .no-print,
+  button,
+  nav,
+  aside,
+  header {
     display: none !important;
+    visibility: hidden !important;
   }
 }
