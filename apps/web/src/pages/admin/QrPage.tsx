@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { QrPrintCard } from '@/components/QrPrintCard'
+import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
+import { Toast } from '@/components/Toast'
 import { Button } from '@/components/ui/Button'
 import { fetchSections } from '@/api/sectionsApi'
 import { API_ORIGIN, toUserMessage } from '@/api/client'
 import { buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { Section } from '@/lib/types'
 
 export function QrPage() {
@@ -11,16 +14,28 @@ export function QrPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [printSectionCode, setPrintSectionCode] = useState<string | null>(null)
+  const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const loadSections = useCallback(async () => {
+    try {
+      const data = await fetchSections()
+      setSections(data)
+      setError(null)
+    } catch (err) {
+      console.error('[qr]', err)
+      setError(toUserMessage(err))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    void fetchSections()
-      .then(setSections)
-      .catch((err) => {
-        console.error('[qr]', err)
-        setError(toUserMessage(err))
-      })
-      .finally(() => setLoading(false))
-  }, [])
+    void loadSections()
+    return onSectionsChanged(() => {
+      void loadSections()
+    })
+  }, [loadSections])
 
   const printSection = printSectionCode
     ? sections.find((s) => s.code === printSectionCode) ?? null
@@ -31,6 +46,14 @@ export function QrPage() {
     a.href = buildQrImageUrl(section.code)
     a.download = `qr-${section.code}.png`
     a.click()
+  }
+
+  function handleSectionDeleted(id: number) {
+    setSections((prev) => prev.filter((s) => s.id !== id))
+    if (sectionToDelete?.id === id && printSectionCode === sectionToDelete.code) {
+      setPrintSectionCode(null)
+    }
+    setToast('Участок успешно удален.')
   }
 
   return (
@@ -81,6 +104,13 @@ export function QrPage() {
                         <Button variant="ghost" onClick={() => setPrintSectionCode(s.code)}>
                           Печать
                         </Button>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setSectionToDelete(s)}
+                          className="text-red-600 hover:bg-red-50"
+                        >
+                          Удалить
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -102,6 +132,14 @@ export function QrPage() {
           </div>
         </div>
       )}
+
+      <DeleteSectionDialog
+        section={sectionToDelete}
+        onClose={() => setSectionToDelete(null)}
+        onSuccess={handleSectionDeleted}
+      />
+
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
       <style>{`
         @media print {

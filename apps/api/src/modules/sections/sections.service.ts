@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { nextSectionCode } from '../../common/section-code';
 import { buildFormUrl, buildQrApiUrl } from '../../common/app-url';
 import { NurseryObject } from '../../entities/nursery-object.entity';
 import { Section } from '../../entities/section.entity';
+import { WorkLog } from '../../entities/work-log.entity';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { UpdateSectionDto } from './dto/update-section.dto';
 
@@ -83,8 +84,18 @@ export class SectionsService {
     return this.findOne(id);
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<void> {
     const row = await this.findOne(id);
-    return this.sectionRepo.remove(row);
+    const workLogCount = await this.dataSource.getRepository(WorkLog).count({
+      where: { sectionId: id },
+    });
+
+    if (workLogCount > 0) {
+      throw new ConflictException(
+        'По данному участку существуют отчеты. Удаление невозможно. Сначала удалите журнал работ или перенесите участок в архив.',
+      );
+    }
+
+    await this.sectionRepo.remove(row);
   }
 }

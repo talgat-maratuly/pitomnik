@@ -13,6 +13,7 @@ import { fetchAllWorkTypes } from '@/api/workTypesApi'
 import { quickFilterRange } from '@/lib/dateFilters'
 import type { QuickFilterId } from '@/lib/constants'
 import { fetchWorkLogs } from '@/lib/workLogsApi'
+import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { NurseryObject, Section, WorkLog, WorkType } from '@/lib/types'
 
 const defaultFilters = (): FilterState => ({
@@ -51,15 +52,19 @@ export function WorkMapPage() {
     }
   }, [filters])
 
-  useEffect(() => {
-    void Promise.all([fetchObjects(), fetchSections(), fetchAllWorkTypes()]).then(
-      ([o, s, w]) => {
-        setObjects(o)
-        setSections(s)
-        setWorkTypes(w)
-      }
-    )
+  const loadFilters = useCallback(async () => {
+    const [o, s, w] = await Promise.all([fetchObjects(), fetchSections(), fetchAllWorkTypes()])
+    setObjects(o)
+    setSections(s)
+    setWorkTypes(w)
   }, [])
+
+  useEffect(() => {
+    void loadFilters()
+    return onSectionsChanged(() => {
+      void loadFilters()
+    })
+  }, [loadFilters])
 
   useEffect(() => {
     void loadLogs()

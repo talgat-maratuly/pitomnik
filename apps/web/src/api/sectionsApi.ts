@@ -1,5 +1,6 @@
 import { apiRequest } from './client'
 import { mapSection, type ApiSection } from './mappers'
+import { notifySectionsChanged } from '@/lib/sectionEvents'
 import type { Section } from '@/lib/types'
 
 export async function fetchSections(): Promise<Section[]> {
@@ -50,4 +51,5 @@ export async function updateSection(
 
 export async function deleteSection(id: number): Promise<void> {
   await apiRequest(`/sections/${id}`, { method: 'DELETE' })
+  notifySectionsChanged()
 }

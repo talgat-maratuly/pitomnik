@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { toUserMessage } from '@/api/client'
 import { createWorkLog } from '@/api/workLogsApi'
 import { fetchSectionByCode, fetchSectionById } from '@/api/sectionsApi'
@@ -43,47 +43,23 @@ function SectionInfoHeader({ section }: { section: Section }) {
   )
 }
 
-function FormNavigation({
-  onBack,
-  onHome,
-  onClose,
-}: {
-  onBack: () => void
-  onHome: () => void
-  onClose: () => void
+function clearFormFields(setters: {
+  setWorkerName: (v: string) => void
+  setWorkTypeId: (v: string) => void
+  setCustomWorkType: (v: string) => void
+  setVolume: (v: string) => void
+  setComment: (v: string) => void
+  setPhotos: (v: FileList | null) => void
 }) {
-  return (
-    <>
-      <button
-        type="button"
-        onClick={onClose}
-        className="fixed right-3 top-3 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-lg text-slate-700 shadow-md ring-1 ring-slate-200 hover:bg-slate-50"
-        aria-label="Закрыть"
-      >
-        ✕
-      </button>
-      <nav className="mb-4 flex items-center gap-2 pt-1">
-        <button
-          type="button"
-          onClick={onBack}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          ← Назад
-        </button>
-        <button
-          type="button"
-          onClick={onHome}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          🏠 Главная
-        </button>
-      </nav>
-    </>
-  )
+  setters.setWorkerName('')
+  setters.setWorkTypeId('')
+  setters.setCustomWorkType('')
+  setters.setVolume('')
+  setters.setComment('')
+  setters.setPhotos(null)
 }
 
 export function WorkFormPage() {
-  const navigate = useNavigate()
   const [params] = useSearchParams()
   const { sectionCode } = useParams<{ sectionCode: string }>()
 
@@ -98,6 +74,7 @@ export function WorkFormPage() {
   const [success, setSuccess] = useState(false)
   const [submittedAt, setSubmittedAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [closeHint, setCloseHint] = useState(false)
 
   const [workerName, setWorkerName] = useState('')
   const [workTypeId, setWorkTypeId] = useState('')
@@ -110,15 +87,6 @@ export function WorkFormPage() {
   const selectedType = workTypes.find((w) => String(w.id) === workTypeId)
   const isOther = selectedType?.is_other ?? selectedType?.name === OTHER_WORK_TYPE
 
-  function goHome() {
-    navigate('/')
-  }
-
-  function goBack() {
-    if (window.history.length > 1) navigate(-1)
-    else goHome()
-  }
-
   async function loadWorkTypes() {
     const active = await fetchActiveWorkTypes()
     setWorkTypes(active)
@@ -128,7 +96,22 @@ export function WorkFormPage() {
     setSuccess(false)
     setSubmittedAt(null)
     setError(null)
+    setCloseHint(false)
+    clearFormFields({
+      setWorkerName,
+      setWorkTypeId,
+      setCustomWorkType,
+      setVolume,
+      setComment,
+      setPhotos,
+    })
     void loadWorkTypes()
+  }
+
+  function closePage() {
+    setCloseHint(false)
+    window.close()
+    window.setTimeout(() => setCloseHint(true), 300)
   }
 
   useEffect(() => {
@@ -214,14 +197,17 @@ export function WorkFormPage() {
         locationAllowed: geoResult.status === 'granted' && hasCoords,
       })
 
-      setWorkerName('')
-      setWorkTypeId('')
-      setCustomWorkType('')
-      setVolume('')
-      setComment('')
-      setPhotos(null)
+      clearFormFields({
+        setWorkerName,
+        setWorkTypeId,
+        setCustomWorkType,
+        setVolume,
+        setComment,
+        setPhotos,
+      })
       setSubmittedAt(created.submitted_at)
       setSuccess(true)
+      setCloseHint(false)
     } catch (err) {
       console.error('[work-form] submit:', err)
       setError(toUserMessage(err, 'Не удалось сохранить отчет'))
@@ -231,10 +217,7 @@ export function WorkFormPage() {
   }
 
   const shell = (children: ReactNode) => (
-    <div className="relative mx-auto min-h-screen max-w-lg p-4 pb-8 pt-12">
-      <FormNavigation onBack={goBack} onHome={goHome} onClose={goBack} />
-      {children}
-    </div>
+    <div className="mx-auto min-h-screen max-w-lg p-4 pb-8 pt-4">{children}</div>
   )
 
   if (loading) {
@@ -251,38 +234,63 @@ export function WorkFormPage() {
         <p className="text-red-600">{error}</p>
         <button
           type="button"
-          onClick={goHome}
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800"
+          onClick={closePage}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
-          Вернуться на главную
+          Закрыть страницу
         </button>
+        {closeHint && (
+          <p className="text-sm text-slate-600">Теперь можно просто закрыть эту вкладку.</p>
+        )}
       </div>
     )
   }
 
   if (success && section && submittedAt) {
-    const successText = settings.form_success_text ?? 'Отчет успешно отправлен'
     const objectName = section.objects?.name ?? '—'
 
     return shell(
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 py-6 text-center">
         <div className="text-5xl">✅</div>
-        <h1 className="text-xl font-bold text-emerald-800">{successText}</h1>
-        <p className="text-sm text-slate-600">
-          {section.name} · {objectName}
-          <br />
-          {formatSubmittedDate(submittedAt)} {formatSubmittedTime(submittedAt)}
-        </p>
-        <button
-          type="button"
-          onClick={createNewReport}
-          className="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
-        >
-          Отправить ещё отчёт
-        </button>
-        <button type="button" onClick={goHome} className="text-sm text-emerald-700 underline">
-          На главную
-        </button>
+        <h1 className="text-xl font-bold text-emerald-800">Отчет успешно отправлен</h1>
+        <p className="text-sm text-slate-600">Спасибо! Ваш отчет успешно сохранен.</p>
+        <dl className="space-y-1 text-sm text-slate-700">
+          <div>
+            <dt className="inline font-medium">Объект: </dt>
+            <dd className="inline">{objectName}</dd>
+          </div>
+          <div>
+            <dt className="inline font-medium">Участок: </dt>
+            <dd className="inline">{section.name}</dd>
+          </div>
+          <div>
+            <dt className="inline font-medium">Дата и время: </dt>
+            <dd className="inline">
+              {formatSubmittedDate(submittedAt)} {formatSubmittedTime(submittedAt)}
+            </dd>
+          </div>
+        </dl>
+        <div className="flex w-full max-w-xs flex-col gap-3">
+          <button
+            type="button"
+            onClick={createNewReport}
+            className="rounded-lg bg-emerald-700 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800"
+          >
+            Отправить еще один отчет
+          </button>
+          <button
+            type="button"
+            onClick={closePage}
+            className="rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Закрыть страницу
+          </button>
+        </div>
+        {closeHint && (
+          <p className="text-sm text-slate-600">
+            Отчет успешно отправлен. Теперь можно просто закрыть эту вкладку.
+          </p>
+        )}
       </div>
     )
   }

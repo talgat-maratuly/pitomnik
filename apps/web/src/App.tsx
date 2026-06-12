@@ -17,12 +17,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Navigate to="/admin" replace />} />
-        <Route path="/work-form" element={<WorkFormPage />} />
         <Route path="/work-form/:sectionCode" element={<WorkFormPage />} />
+        <Route path="/work-form" element={<WorkFormPage />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<DashboardPage />} />
-          <Route path="journal" element={<JournalPage />} />
-          <Route path="work-map" element={<WorkMapPage />} />
+          <Route path="work-logs" element={<JournalPage />} />
+          <Route path="map" element={<WorkMapPage />} />
+          <Route path="journal" element={<Navigate to="/admin/work-logs" replace />} />
+          <Route path="work-map" element={<Navigate to="/admin/map" replace />} />
           <Route path="objects" element={<ObjectsPage />} />
           <Route path="work-types" element={<WorkTypesPage />} />
           <Route path="qr" element={<QrPage />} />

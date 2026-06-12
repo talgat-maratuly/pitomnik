@@ -1,29 +1,19 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useState } from 'react'
 import { QrPrintCard } from '@/components/QrPrintCard'
+import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
+import { Toast } from '@/components/Toast'
 import { toUserMessage } from '@/api/client'
 import { createObject, deleteObject, fetchObjects, updateObject } from '@/api/objectsApi'
 import {
   createSection,
-  deleteSection,
   fetchSections,
   updateSection,
 } from '@/api/sectionsApi'
 import { buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { NurseryObject, Section } from '@/lib/types'
 
 type SectionWithObject = Section
-
-function Toast({ message, onClose }: { message: string; onClose: () => void }) {
-  useEffect(() => {
-    const t = setTimeout(onClose, 3000)
-    return () => clearTimeout(t)
-  }, [onClose])
-  return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-emerald-800 px-5 py-3 text-white shadow-lg">
-      {message}
-    </div>
-  )
-}
 
 export function ObjectsPage() {
   const [objects, setObjects] = useState<NurseryObject[]>([])
@@ -58,8 +48,9 @@ export function ObjectsPage() {
   const [editSecSaving, setEditSecSaving] = useState(false)
 
   const [printSectionCode, setPrintSectionCode] = useState<string | null>(null)
+  const [sectionToDelete, setSectionToDelete] = useState<SectionWithObject | null>(null)
 
-  async function reload() {
+  const reload = useCallback(async () => {
     setLoading(true)
     setObjError(null)
     try {
@@ -72,11 +63,14 @@ export function ObjectsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     void reload()
-  }, [])
+    return onSectionsChanged(() => {
+      void reload()
+    })
+  }, [reload])
 
   async function handleCreateObject(e: FormEvent) {
     e.preventDefault()
@@ -204,16 +198,15 @@ export function ObjectsPage() {
     }
   }
 
-  async function handleDeleteSection(id: number) {
-    if (!confirm('Удалить участок?')) return
-    try {
-      await deleteSection(id)
-      setToast('Участок удалён')
-      await reload()
-    } catch (err) {
-      console.error('[sections] delete:', err)
-      alert(toUserMessage(err))
+  function handleSectionDeleted(id: number) {
+    setSections((prev) => prev.filter((s) => s.id !== id))
+    if (sectionToDelete?.id === id && printSectionCode === sectionToDelete.code) {
+      setPrintSectionCode(null)
     }
+    if (editingSecId === id) {
+      setEditingSecId(null)
+    }
+    setToast('Участок успешно удален.')
   }
 
   const printSection = printSectionCode
@@ -442,7 +435,7 @@ export function ObjectsPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => void handleDeleteSection(s.id)}
+                          onClick={() => setSectionToDelete(s)}
                           className="text-xs text-red-600"
                         >
                           Удалить
@@ -535,6 +528,12 @@ export function ObjectsPage() {
           </div>
         </div>
       )}
+
+      <DeleteSectionDialog
+        section={sectionToDelete}
+        onClose={() => setSectionToDelete(null)}
+        onSuccess={handleSectionDeleted}
+      />
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
     </div>

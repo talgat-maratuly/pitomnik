@@ -3,8 +3,8 @@ import { getNurseryName } from '@/lib/appConfig'
 
 const nav = [
   { to: '/admin', end: true, label: 'Главная' },
-  { to: '/admin/journal', label: 'Журнал работ' },
-  { to: '/admin/work-map', label: 'Карта работ' },
+  { to: '/admin/work-logs', label: 'Журнал работ' },
+  { to: '/admin/map', label: 'Карта работ' },
   { to: '/admin/objects', label: 'Объекты и участки' },
   { to: '/admin/work-types', label: 'Виды работ' },
   { to: '/admin/qr', label: 'QR-коды' },
