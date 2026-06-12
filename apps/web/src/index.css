@@ -3,3 +3,26 @@
 body {
   @apply bg-slate-50 text-slate-900 antialiased;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-print-card,
+  .qr-print-card * {
+    visibility: visible;
+  }
+
+  .qr-print-card {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

@@ -16,8 +16,8 @@ const nav = [
 
 export function AdminLayout() {
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b border-slate-200 bg-white md:w-56 md:border-b-0 md:border-r">
+    <div className="no-print flex min-h-screen flex-col md:flex-row">
+      <aside className="no-print border-b border-slate-200 bg-white md:w-56 md:border-b-0 md:border-r">
         <div className="border-b border-slate-100 px-4 py-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">Админ-панель</p>
           <p className="font-bold text-emerald-800">{getNurseryName()}</p>
@@ -41,7 +41,7 @@ export function AdminLayout() {
           ))}
         </nav>
       </aside>
-      <main className="flex-1 p-4 md:p-6">
+      <main className="no-print flex-1 p-4 md:p-6">
         <Outlet />
       </main>
     </div>

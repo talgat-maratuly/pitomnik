@@ -1,5 +1,5 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react'
-import { QrPrintCard } from '@/components/QrPrintCard'
+import { QrPrintModal } from '@/components/QrPrintModal'
 import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
 import { Toast } from '@/components/Toast'
 import { toUserMessage } from '@/api/client'
@@ -48,6 +48,7 @@ export function ObjectsPage() {
   const [editSecSaving, setEditSecSaving] = useState(false)
 
   const [printSectionCode, setPrintSectionCode] = useState<string | null>(null)
+  const [autoPrint, setAutoPrint] = useState(false)
   const [sectionToDelete, setSectionToDelete] = useState<SectionWithObject | null>(null)
 
   const reload = useCallback(async () => {
@@ -215,8 +216,18 @@ export function ObjectsPage() {
 
   if (loading) return <p className="text-slate-500">Загрузка…</p>
 
+  function openPrint(section: SectionWithObject) {
+    setPrintSectionCode(section.code)
+    setAutoPrint(true)
+  }
+
+  function closePrint() {
+    setPrintSectionCode(null)
+    setAutoPrint(false)
+  }
+
   return (
-    <div className="space-y-10">
+    <div className="no-print space-y-10">
       <h1 className="text-2xl font-bold">Объекты и участки</h1>
       <p className="text-sm text-slate-500">Данные хранятся на сервере (NestJS + PostgreSQL)</p>
 
@@ -425,7 +436,7 @@ export function ObjectsPage() {
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
-                          onClick={() => setPrintSectionCode(s.code)}
+                          onClick={() => openPrint(s)}
                           className="text-xs text-emerald-700 underline"
                         >
                           Печать
@@ -503,31 +514,13 @@ export function ObjectsPage() {
         </section>
       )}
 
-      {printSection && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 print:relative print:bg-transparent">
-          <div className="relative rounded-xl bg-white p-4 shadow-xl print:shadow-none">
-            <button
-              type="button"
-              className="absolute right-2 top-2 print:hidden"
-              onClick={() => setPrintSectionCode(null)}
-            >
-              ✕
-            </button>
-            <QrPrintCard
-              section={printSection}
-              objectName={printSection.objects?.name ?? '—'}
-              formUrl={buildWorkFormUrlBySectionCode(printSection.code)}
-            />
-            <button
-              type="button"
-              className="mt-4 w-full rounded-lg bg-emerald-700 py-2 text-sm text-white print:hidden"
-              onClick={() => window.print()}
-            >
-              Печать
-            </button>
-          </div>
-        </div>
-      )}
+      <QrPrintModal
+        section={printSection}
+        objectName={printSection?.objects?.name ?? '—'}
+        formUrl={printSection ? buildWorkFormUrlBySectionCode(printSection.code) : ''}
+        onClose={closePrint}
+        autoPrint={autoPrint}
+      />
 
       <DeleteSectionDialog
         section={sectionToDelete}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { QrPrintCard } from '@/components/QrPrintCard'
+import { QrPrintModal } from '@/components/QrPrintModal'
 import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
 import { Toast } from '@/components/Toast'
 import { Button } from '@/components/ui/Button'
@@ -14,6 +14,7 @@ export function QrPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [printSectionCode, setPrintSectionCode] = useState<string | null>(null)
+  const [autoPrint, setAutoPrint] = useState(false)
   const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -56,8 +57,18 @@ export function QrPage() {
     setToast('Участок успешно удален.')
   }
 
+  function openPrint(section: Section) {
+    setPrintSectionCode(section.code)
+    setAutoPrint(true)
+  }
+
+  function closePrint() {
+    setPrintSectionCode(null)
+    setAutoPrint(false)
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="no-print space-y-6">
       <h1 className="text-2xl font-bold">QR-коды</h1>
       <p className="text-sm text-slate-500">QR генерируется сервером: {API_ORIGIN}/api/qr/&#123;код&#125;</p>
 
@@ -101,7 +112,7 @@ export function QrPage() {
                           Скачать PNG
                         </Button>
                         <Button onClick={() => window.open(formUrl, '_blank')}>Открыть форму</Button>
-                        <Button variant="ghost" onClick={() => setPrintSectionCode(s.code)}>
+                        <Button variant="ghost" onClick={() => openPrint(s)}>
                           Печать
                         </Button>
                         <Button
@@ -121,17 +132,13 @@ export function QrPage() {
         </div>
       )}
 
-      {printSection && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4 print:relative print:bg-transparent">
-          <div className="print:block">
-            <QrPrintCard
-              section={printSection}
-              objectName={printSection.objects?.name ?? '—'}
-              formUrl={buildWorkFormUrlBySectionCode(printSection.code)}
-            />
-          </div>
-        </div>
-      )}
+      <QrPrintModal
+        section={printSection}
+        objectName={printSection?.objects?.name ?? '—'}
+        formUrl={printSection ? buildWorkFormUrlBySectionCode(printSection.code) : ''}
+        onClose={closePrint}
+        autoPrint={autoPrint}
+      />
 
       <DeleteSectionDialog
         section={sectionToDelete}
@@ -140,14 +147,6 @@ export function QrPage() {
       />
 
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}
-
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .qr-print-card, .qr-print-card * { visibility: visible; }
-          .qr-print-card { position: absolute; left: 0; top: 0; width: 100%; }
-        }
-      `}</style>
     </div>
   )
 }

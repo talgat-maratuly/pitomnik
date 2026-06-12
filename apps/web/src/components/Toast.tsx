@@ -7,7 +7,7 @@ export function Toast({ message, onClose }: { message: string; onClose: () => vo
   }, [onClose])
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-emerald-800 px-5 py-3 text-white shadow-lg">
+    <div className="no-print fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl bg-emerald-800 px-5 py-3 text-white shadow-lg">
       {message}
     </div>
   )

@@ -18,7 +18,7 @@ export function QrPrintCard({ section, objectName, formUrl }: Props) {
   }, [formUrl])
 
   return (
-    <div className="qr-print-card mx-auto max-w-sm rounded-xl border-2 border-slate-800 bg-white p-6 text-center">
+    <div className="mx-auto max-w-sm rounded-xl border-2 border-slate-800 bg-white p-6 text-center">
       <p className="text-lg font-bold">{getNurseryName()}</p>
       <p className="mt-1 text-sm text-slate-600">{objectName}</p>
       <p className="mt-2 text-xl font-semibold">{section.name}</p>
