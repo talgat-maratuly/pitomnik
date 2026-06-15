@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as QRCode from 'qrcode';
 import { Repository } from 'typeorm';
-import { buildFormUrl } from '../../common/app-url';
+import { buildCheckOutUrl, buildFormUrl } from '../../common/app-url';
 import { Section } from '../../entities/section.entity';
 
 @Injectable()
@@ -20,6 +20,11 @@ export class QrService {
 
   async generatePng(sectionCode: string): Promise<Buffer> {
     const url = await this.getFormUrlBySectionCode(sectionCode);
+    return QRCode.toBuffer(url, { type: 'png', width: 400, margin: 2 });
+  }
+
+  async generateCheckOutPng(): Promise<Buffer> {
+    const url = buildCheckOutUrl();
     return QRCode.toBuffer(url, { type: 'png', width: 400, margin: 2 });
   }
 }

@@ -7,7 +7,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { ReviewStatus } from '../common/enums/review-status.enum';
 import { Section } from './section.entity';
+import { Task } from './task.entity';
+import { User } from './user.entity';
 import { WorkType } from './work-type.entity';
 
 @Entity('work_logs')
@@ -52,8 +55,31 @@ export class WorkLog {
   @Column({ name: 'submitted_at', type: 'timestamptz', default: () => 'NOW()' })
   submittedAt!: Date;
 
+  @Column({ name: 'task_id', nullable: true })
+  taskId!: number | null;
+
+  @Column({ name: 'review_status', type: 'varchar', length: 32, default: ReviewStatus.PENDING })
+  reviewStatus!: ReviewStatus;
+
+  @Column({ name: 'reviewed_by_id', nullable: true })
+  reviewedById!: number | null;
+
+  @Column({ name: 'review_comment', type: 'text', nullable: true })
+  reviewComment!: string | null;
+
+  @Column({ name: 'reviewed_at', type: 'timestamptz', nullable: true })
+  reviewedAt!: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
+
+  @ManyToOne(() => Task, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'task_id' })
+  task!: Task | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'reviewed_by_id' })
+  reviewedBy!: User | null;
 
   @ManyToOne(() => Section, (section) => section.workLogs, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'section_id' })

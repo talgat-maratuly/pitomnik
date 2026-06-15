@@ -5,7 +5,7 @@ import { Toast } from '@/components/Toast'
 import { Button } from '@/components/ui/Button'
 import { fetchSections } from '@/api/sectionsApi'
 import { API_ORIGIN, toUserMessage } from '@/api/client'
-import { buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import { buildCheckOutQrImageUrl, buildCheckOutUrl, buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
 import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { Section } from '@/lib/types'
 
@@ -67,10 +67,45 @@ export function QrPage() {
     setAutoPrint(false)
   }
 
+  function downloadCheckOutQr() {
+    const a = document.createElement('a')
+    a.href = buildCheckOutQrImageUrl()
+    a.download = 'qr-checkout.png'
+    a.click()
+  }
+
+  const checkOutUrl = buildCheckOutUrl()
+
   return (
     <div className="no-print space-y-6">
       <h1 className="text-2xl font-bold">QR-коды</h1>
-      <p className="text-sm text-slate-500">QR генерируется сервером: {API_ORIGIN}/api/qr/&#123;код&#125;</p>
+
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+        <h2 className="text-lg font-semibold text-emerald-900">QR «Уход» (общий)</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Один QR для отметки ухода в конце смены. Приход фиксируется автоматически первым отчётом с участка.
+        </p>
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <img
+            src={buildCheckOutQrImageUrl()}
+            alt="QR уход"
+            className="h-[120px] w-[120px] rounded-lg border bg-white p-1"
+          />
+          <div className="space-y-2 text-sm">
+            <a href={checkOutUrl} target="_blank" rel="noreferrer" className="block break-all text-emerald-700 underline">
+              {checkOutUrl}
+            </a>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" onClick={downloadCheckOutQr}>
+                Скачать PNG
+              </Button>
+              <Button onClick={() => window.open(checkOutUrl, '_blank')}>Открыть форму ухода</Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p className="text-sm text-slate-500">QR участков: {API_ORIGIN}/api/qr/&#123;код&#125;</p>
 
       {error && <p className="text-red-600">{error}</p>}
       {loading ? (

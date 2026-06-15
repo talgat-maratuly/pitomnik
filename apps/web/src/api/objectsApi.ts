@@ -1,10 +1,22 @@
 import { apiRequest } from './client'
-import { mapObject, type ApiObject } from './mappers'
-import type { NurseryObject } from '@/lib/types'
+import { mapObject, mapSection, type ApiObject } from './mappers'
+import type { NurseryObject, Section } from '@/lib/types'
+
+export type NurseryObjectWithSections = NurseryObject & {
+  sections: Section[]
+}
 
 export async function fetchObjects(): Promise<NurseryObject[]> {
   const data = await apiRequest<ApiObject[]>('/objects')
   return data.map(mapObject)
+}
+
+export async function fetchObjectsWithSections(): Promise<NurseryObjectWithSections[]> {
+  const data = await apiRequest<ApiObject[]>('/objects')
+  return data.map((o) => ({
+    ...mapObject(o),
+    sections: (o.sections ?? []).map(mapSection),
+  }))
 }
 
 export async function createObject(payload: {

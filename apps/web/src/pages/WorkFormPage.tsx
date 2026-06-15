@@ -13,6 +13,7 @@ import { formatSubmittedDate, formatSubmittedTime } from '@/lib/dateFilters'
 import { defaultFormSettings, readFormSettings } from '@/lib/formSettings'
 import { uploadWorkPhotos } from '@/lib/photos'
 import { fetchActiveWorkTypes } from '@/lib/workTypesApi'
+import { fetchOpenTasksForSection, type ApiTask } from '@/api/tasksApi'
 import type { Section, WorkType } from '@/lib/types'
 
 type FormSettings = typeof defaultFormSettings
@@ -46,6 +47,7 @@ function SectionInfoHeader({ section }: { section: Section }) {
 function clearFormFields(setters: {
   setWorkerName: (v: string) => void
   setWorkTypeId: (v: string) => void
+  setTaskId: (v: string) => void
   setCustomWorkType: (v: string) => void
   setVolume: (v: string) => void
   setComment: (v: string) => void
@@ -53,6 +55,7 @@ function clearFormFields(setters: {
 }) {
   setters.setWorkerName('')
   setters.setWorkTypeId('')
+  setters.setTaskId('')
   setters.setCustomWorkType('')
   setters.setVolume('')
   setters.setComment('')
@@ -68,6 +71,7 @@ export function WorkFormPage() {
 
   const [section, setSection] = useState<Section | null>(null)
   const [workTypes, setWorkTypes] = useState<WorkType[]>([])
+  const [openTasks, setOpenTasks] = useState<ApiTask[]>([])
   const [settings, setSettings] = useState<FormSettings>(defaultFormSettings)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -78,6 +82,7 @@ export function WorkFormPage() {
 
   const [workerName, setWorkerName] = useState('')
   const [workTypeId, setWorkTypeId] = useState('')
+  const [taskId, setTaskId] = useState('')
   const [customWorkType, setCustomWorkType] = useState('')
   const [volume, setVolume] = useState('')
   const [comment, setComment] = useState('')
@@ -100,6 +105,7 @@ export function WorkFormPage() {
     clearFormFields({
       setWorkerName,
       setWorkTypeId,
+      setTaskId,
       setCustomWorkType,
       setVolume,
       setComment,
@@ -131,6 +137,8 @@ export function WorkFormPage() {
           : await fetchSectionById(legacySectionId)
         setSection(sec)
         await loadWorkTypes()
+        const tasks = await fetchOpenTasksForSection(sec.id).catch(() => [])
+        setOpenTasks(tasks)
       } catch (err) {
         console.error('[work-form] load:', err)
         setError(toUserMessage(err, 'Участок не найден'))
@@ -187,6 +195,7 @@ export function WorkFormPage() {
         sectionId: section.id,
         workerFullName: workerName.trim(),
         workTypeId: Number(workTypeId),
+        taskId: taskId ? Number(taskId) : undefined,
         customWorkType: isOther ? customWorkType.trim() : null,
         workVolume: volume.trim(),
         comment: comment.trim() || '',
@@ -200,6 +209,7 @@ export function WorkFormPage() {
       clearFormFields({
         setWorkerName,
         setWorkTypeId,
+        setTaskId,
         setCustomWorkType,
         setVolume,
         setComment,
@@ -330,6 +340,21 @@ export function WorkFormPage() {
             value={customWorkType}
             onChange={(e) => setCustomWorkType(e.target.value)}
             required
+          />
+        )}
+
+        {openTasks.length > 0 && (
+          <Select
+            label="Выберите задачу"
+            value={taskId}
+            onChange={(e) => setTaskId(e.target.value)}
+            options={[
+              { value: '', label: '— без задачи —' },
+              ...openTasks.map((t) => ({
+                value: String(t.id),
+                label: `${t.workType?.name ?? 'Задача'} · ${t.description || 'без описания'}`,
+              })),
+            ]}
           />
         )}
 

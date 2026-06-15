@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { Public } from '../../common/decorators/public.decorator';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { randomUUID } from 'crypto';
@@ -21,6 +22,7 @@ export class UploadsController {
     this.uploadsService.ensurePhotosDir();
   }
 
+  @Public()
   @Post('photos')
   @UseInterceptors(
     FilesInterceptor('files', 10, {

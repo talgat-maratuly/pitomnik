@@ -49,6 +49,15 @@ export class Section {
   @Column({ name: 'radius_meters', type: 'int', nullable: true })
   radiusMeters!: number | null;
 
+  @Column({ name: 'care_status', type: 'varchar', length: 64, nullable: true })
+  careStatus!: string | null;
+
+  @Column({ name: 'care_problems', type: 'text', default: '[]' })
+  careProblems!: string;
+
+  @Column({ name: 'care_recommendation', type: 'text', nullable: true })
+  careRecommendation!: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

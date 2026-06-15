@@ -1,3 +1,5 @@
+import { getToken } from '@/lib/auth'
+
 const API_BASE =
   import.meta.env.VITE_API_URL?.replace(/\/$/, '') || '/api'
 
@@ -71,6 +73,10 @@ export async function apiRequest<T>(
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
+  const token = getToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
 
   try {
     res = await fetch(url, {
@@ -100,9 +106,12 @@ export async function apiRequest<T>(
 
 export async function apiDownload(path: string): Promise<Blob> {
   const url = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`
+  const headers = new Headers()
+  const token = getToken()
+  if (token) headers.set('Authorization', `Bearer ${token}`)
   let res: Response
   try {
-    res = await fetch(url)
+    res = await fetch(url, { headers })
   } catch (err) {
     console.error('[api]', path, err)
     throw new ApiError('Проверьте подключение к серверу', 0, err)

@@ -41,6 +41,11 @@ export interface WorkLog {
   map_url: string | null
   submitted_at: string
   created_at: string
+  task_id: number | null
+  review_status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  review_comment: string | null
+  reviewed_at: string | null
+  reviewed_by_name: string | null
   sections?: Section & { objects?: NurseryObject }
   work_types?: WorkType | null
 }

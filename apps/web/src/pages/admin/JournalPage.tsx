@@ -12,8 +12,9 @@ import { fetchAllWorkTypes } from '@/api/workTypesApi'
 import { quickFilterRange, toDateInput } from '@/lib/dateFilters'
 import type { QuickFilterId } from '@/lib/constants'
 import { exportWorkLogsToExcel } from '@/lib/excel'
-import { fetchWorkLogs } from '@/lib/workLogsApi'
+import { fetchWorkLogs, reviewWorkLog } from '@/lib/workLogsApi'
 import { onSectionsChanged } from '@/lib/sectionEvents'
+import { useAuth } from '@/context/AuthContext'
 import type { NurseryObject, Section, WorkLog, WorkType } from '@/lib/types'
 
 const defaultFilters = (): FilterState => {
@@ -29,6 +30,8 @@ const defaultFilters = (): FilterState => {
 }
 
 export function JournalPage() {
+  const { hasRole } = useAuth()
+  const canReview = hasRole('ADMIN', 'BRIGADIER', 'AGRONOMIST')
   const [filters, setFilters] = useState(defaultFilters)
   const [logs, setLogs] = useState<WorkLog[]>([])
   const [loading, setLoading] = useState(true)
@@ -69,6 +72,20 @@ export function JournalPage() {
     setFilters((f) => ({ ...f, dateFrom: from, dateTo: to }))
   }
 
+  async function handleReview(log: WorkLog, status: 'APPROVED' | 'REJECTED') {
+    const comment = window.prompt(
+      status === 'APPROVED' ? 'Комментарий проверки (необязательно):' : 'Причина отклонения:'
+    )
+    if (status === 'REJECTED' && comment === null) return
+    try {
+      await reviewWorkLog(log.id, { reviewStatus: status, reviewComment: comment || undefined })
+      await loadLogs()
+    } catch (err) {
+      console.error('[journal] review:', err)
+      alert('Не удалось сохранить проверку')
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -101,7 +118,12 @@ export function JournalPage() {
         <Button onClick={() => void loadLogs()}>Применить фильтры</Button>
       </div>
 
-      <WorkLogTable logs={logs} loading={loading} />
+      <WorkLogTable
+        logs={logs}
+        loading={loading}
+        canReview={canReview}
+        onReview={(log, status) => void handleReview(log, status)}
+      />
     </div>
   )
 }

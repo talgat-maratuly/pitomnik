@@ -1,11 +1,14 @@
 import { Controller, Get, Query, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../../common/enums/user-role.enum';
 import { ExportService } from './export.service';
 import { WorkLogQueryDto } from '../work-logs/dto/work-log-query.dto';
 
 @ApiTags('export')
 @Controller('export')
+@Roles(UserRole.ADMIN, UserRole.BRIGADIER, UserRole.AGRONOMIST)
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 

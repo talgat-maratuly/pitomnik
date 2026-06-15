@@ -1,0 +1,45 @@
+import { apiRequest } from './client'
+import type { UserRole } from '@/lib/auth'
+
+export type ApiUser = {
+  id: number
+  fullName: string
+  username: string
+  role: UserRole
+  brigadeId: number | null
+  isActive: boolean
+  createdAt: string
+}
+
+export async function fetchUsers(): Promise<ApiUser[]> {
+  return apiRequest<ApiUser[]>('/users')
+}
+
+export async function createUser(payload: {
+  fullName: string
+  username: string
+  password: string
+  role: UserRole
+  brigadeId?: number
+  isActive?: boolean
+}): Promise<ApiUser> {
+  return apiRequest<ApiUser>('/users', { method: 'POST', body: JSON.stringify(payload) })
+}
+
+export async function updateUser(
+  id: number,
+  payload: Partial<{
+    fullName: string
+    username: string
+    password: string
+    role: UserRole
+    brigadeId: number | null
+    isActive: boolean
+  }>
+): Promise<ApiUser> {
+  return apiRequest<ApiUser>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  await apiRequest(`/users/${id}`, { method: 'DELETE' })
+}

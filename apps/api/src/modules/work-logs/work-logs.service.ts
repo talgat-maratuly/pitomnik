@@ -1,13 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { endOfDay, parseISO, startOfDay, startOfMonth, subDays } from 'date-fns';
 import { Repository } from 'typeorm';
 import { serializePhotoUrls } from '../../common/photo-urls';
 import { mapWorkLogsWithPhotos, withPhotoUrlsArray } from '../../common/work-log-response';
+import { ReviewStatus } from '../../common/enums/review-status.enum';
+import { TaskStatus } from '../../common/enums/task-status.enum';
+import { UserRole } from '../../common/enums/user-role.enum';
 import { Section } from '../../entities/section.entity';
+import { Task } from '../../entities/task.entity';
+import { User } from '../../entities/user.entity';
 import { WorkLog } from '../../entities/work-log.entity';
 import { WorkType } from '../../entities/work-type.entity';
+import { UsersService } from '../users/users.service';
+import { AttendanceService } from '../attendance/attendance.service';
 import { CreateWorkLogDto } from './dto/create-work-log.dto';
+import { ReviewWorkLogDto } from './dto/review-work-log.dto';
 import { WorkLogQueryDto } from './dto/work-log-query.dto';
 
 @Injectable()
@@ -19,6 +27,10 @@ export class WorkLogsService {
     private readonly sectionRepo: Repository<Section>,
     @InjectRepository(WorkType)
     private readonly workTypeRepo: Repository<WorkType>,
+    @InjectRepository(Task)
+    private readonly taskRepo: Repository<Task>,
+    private readonly usersService: UsersService,
+    private readonly attendanceService: AttendanceService,
   ) {}
 
   private applyFilters(qb: ReturnType<Repository<WorkLog>['createQueryBuilder']>, query: WorkLogQueryDto) {
@@ -54,11 +66,32 @@ export class WorkLogsService {
       .createQueryBuilder('workLog')
       .leftJoinAndSelect('workLog.section', 'section')
       .leftJoinAndSelect('section.object', 'object')
-      .leftJoinAndSelect('workLog.workType', 'workType');
+      .leftJoinAndSelect('workLog.workType', 'workType')
+      .leftJoinAndSelect('workLog.task', 'task')
+      .leftJoinAndSelect('workLog.reviewedBy', 'reviewedBy');
   }
 
-  async findAll(query: WorkLogQueryDto) {
-    const qb = this.applyFilters(this.baseQuery(), query);
+  private async applyRoleFilter(
+    qb: ReturnType<Repository<WorkLog>['createQueryBuilder']>,
+    user?: User,
+  ) {
+    if (!user || user.role === UserRole.ADMIN || user.role === UserRole.AGRONOMIST) {
+      return qb;
+    }
+    if (user.role === UserRole.BRIGADIER && user.brigadeId) {
+      const names = await this.usersService.getBrigadeWorkerNames(user.brigadeId);
+      if (!names.length) {
+        qb.andWhere('1 = 0');
+        return qb;
+      }
+      qb.andWhere('workLog.workerFullName IN (:...names)', { names });
+    }
+    return qb;
+  }
+
+  async findAll(query: WorkLogQueryDto, user?: User) {
+    let qb = this.applyFilters(this.baseQuery(), query);
+    qb = await this.applyRoleFilter(qb, user);
     qb.orderBy('workLog.submittedAt', 'DESC');
     const rows = await qb.getMany();
     return mapWorkLogsWithPhotos(rows);
@@ -79,12 +112,21 @@ export class WorkLogsService {
       if (!wt) throw new NotFoundException('Вид работы не найден');
     }
 
+    if (dto.taskId) {
+      const task = await this.taskRepo.findOne({ where: { id: dto.taskId } });
+      if (!task) throw new NotFoundException('Задача не найдена');
+      if (task.sectionId !== dto.sectionId) {
+        throw new NotFoundException('Задача не относится к этому участку');
+      }
+    }
+
     const hasCoords = dto.latitude != null && dto.longitude != null;
 
     const row = this.workLogRepo.create({
       sectionId: dto.sectionId,
-      workerFullName: dto.workerFullName.trim(),
+      workerFullName: dto.workerFullName.trim().replace(/\s+/g, ' '),
       workTypeId: dto.workTypeId ?? null,
+      taskId: dto.taskId ?? null,
       customWorkType: dto.customWorkType?.trim() || null,
       workVolume: dto.workVolume.trim(),
       comment: dto.comment?.trim() ?? '',
@@ -96,7 +138,44 @@ export class WorkLogsService {
       submittedAt: new Date(),
     });
     const saved = await this.workLogRepo.save(row);
+
+    await this.attendanceService.syncOnWorkLogCreated(saved);
+
+    if (dto.taskId) {
+      const task = await this.taskRepo.findOne({ where: { id: dto.taskId } });
+      if (task && task.status === TaskStatus.ASSIGNED) {
+        task.status = TaskStatus.IN_PROGRESS;
+        await this.taskRepo.save(task);
+      }
+    }
+
     return this.findOne(saved.id);
+  }
+
+  async review(id: number, dto: ReviewWorkLogDto, reviewer: User) {
+    if (reviewer.role !== UserRole.ADMIN && reviewer.role !== UserRole.BRIGADIER && reviewer.role !== UserRole.AGRONOMIST) {
+      throw new ForbiddenException('Недостаточно прав для проверки отчёта');
+    }
+
+    const row = await this.workLogRepo.findOne({ where: { id } });
+    if (!row) throw new NotFoundException('Запись не найдена');
+
+    row.reviewStatus = dto.reviewStatus;
+    row.reviewComment = dto.reviewComment?.trim() || null;
+    row.reviewedById = reviewer.id;
+    row.reviewedAt = new Date();
+    await this.workLogRepo.save(row);
+
+    if (row.taskId) {
+      const task = await this.taskRepo.findOne({ where: { id: row.taskId } });
+      if (task) {
+        task.status =
+          dto.reviewStatus === ReviewStatus.APPROVED ? TaskStatus.VERIFIED : TaskStatus.REJECTED;
+        await this.taskRepo.save(task);
+      }
+    }
+
+    return this.findOne(id);
   }
 
   async remove(id: number) {

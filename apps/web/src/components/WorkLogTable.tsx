@@ -1,14 +1,17 @@
 import { formatSubmittedDate, formatSubmittedTime } from '@/lib/dateFilters'
 import { workTypeLabel } from '@/lib/workLogDisplay'
 import { buildMapLink, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import { REVIEW_STATUS_LABELS } from '@/lib/workLogsApi'
 import type { WorkLog } from '@/lib/types'
 
 interface Props {
   logs: WorkLog[]
   loading?: boolean
+  canReview?: boolean
+  onReview?: (log: WorkLog, status: 'APPROVED' | 'REJECTED') => void
 }
 
-export function WorkLogTable({ logs, loading }: Props) {
+export function WorkLogTable({ logs, loading, canReview, onReview }: Props) {
   if (loading) {
     return <p className="py-8 text-center text-slate-500">Загрузка…</p>
   }
@@ -33,6 +36,8 @@ export function WorkLogTable({ logs, loading }: Props) {
             <th className="px-3 py-3">Комментарий</th>
             <th className="px-3 py-3">Фото</th>
             <th className="px-3 py-3">Геолокация</th>
+            <th className="px-3 py-3">Проверка</th>
+            {canReview && <th className="px-3 py-3">Действия</th>}
             <th className="px-3 py-3">Ссылка на QR-форму</th>
           </tr>
         </thead>
@@ -92,6 +97,48 @@ export function WorkLogTable({ logs, loading }: Props) {
                     <span className="text-slate-500">Геолокация не разрешена</span>
                   )}
                 </td>
+                <td className="px-3 py-2">
+                  <div className="space-y-1">
+                    <span
+                      className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                        log.review_status === 'APPROVED'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : log.review_status === 'REJECTED'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {REVIEW_STATUS_LABELS[log.review_status]}
+                    </span>
+                    {log.review_comment && (
+                      <p className="text-xs text-slate-500">{log.review_comment}</p>
+                    )}
+                  </div>
+                </td>
+                {canReview && (
+                  <td className="px-3 py-2">
+                    {log.review_status === 'PENDING' && onReview ? (
+                      <div className="flex flex-col gap-1">
+                        <button
+                          type="button"
+                          className="text-xs text-emerald-700 underline"
+                          onClick={() => onReview(log, 'APPROVED')}
+                        >
+                          Подтвердить
+                        </button>
+                        <button
+                          type="button"
+                          className="text-xs text-red-600 underline"
+                          onClick={() => onReview(log, 'REJECTED')}
+                        >
+                          Отклонить
+                        </button>
+                      </div>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                )}
                 <td className="px-3 py-2">
                   {sectionCode ? (
                     <a

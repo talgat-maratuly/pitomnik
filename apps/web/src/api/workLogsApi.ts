@@ -23,6 +23,7 @@ export async function createWorkLog(payload: {
   sectionId: number
   workerFullName: string
   workTypeId?: number
+  taskId?: number
   customWorkType?: string | null
   workVolume: string
   comment?: string
@@ -42,6 +43,23 @@ export async function createWorkLog(payload: {
 export async function deleteWorkLog(id: number): Promise<void> {
   await apiRequest(`/work-logs/${id}`, { method: 'DELETE' })
 }
+
+export async function reviewWorkLog(
+  id: number,
+  payload: { reviewStatus: 'APPROVED' | 'REJECTED'; reviewComment?: string }
+): Promise<WorkLog> {
+  const data = await apiRequest<ApiWorkLog>(`/work-logs/${id}/review`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  })
+  return mapWorkLog(data)
+}
+
+export const REVIEW_STATUS_LABELS = {
+  PENDING: 'Ожидает проверки',
+  APPROVED: 'Подтверждено',
+  REJECTED: 'Отклонено',
+} as const
 
 export type WorkLogStats = {
   today: number

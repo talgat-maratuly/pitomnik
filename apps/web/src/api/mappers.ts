@@ -53,6 +53,11 @@ export type ApiWorkLog = {
   locationAllowed: boolean
   submittedAt: string
   createdAt: string
+  taskId?: number | null
+  reviewStatus?: 'PENDING' | 'APPROVED' | 'REJECTED'
+  reviewComment?: string | null
+  reviewedAt?: string | null
+  reviewedBy?: { id: number; fullName: string } | null
   section?: ApiSection & { object?: ApiObject }
   workType?: ApiWorkType | null
 }
@@ -108,6 +113,11 @@ export function mapWorkLog(w: ApiWorkLog): WorkLog {
     map_url: hasGeo ? buildMapLink(w.latitude!, w.longitude!) : null,
     submitted_at: w.submittedAt,
     created_at: w.createdAt,
+    task_id: w.taskId ?? null,
+    review_status: w.reviewStatus ?? 'PENDING',
+    review_comment: w.reviewComment ?? null,
+    reviewed_at: w.reviewedAt ?? null,
+    reviewed_by_name: w.reviewedBy?.fullName ?? null,
     sections: w.section
       ? {
           ...mapSection(w.section),

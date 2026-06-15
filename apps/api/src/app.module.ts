@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { join } from 'path';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { RolesGuard } from './common/guards/roles.guard';
 import { ObjectsModule } from './modules/objects/objects.module';
 import { SectionsModule } from './modules/sections/sections.module';
 import { WorkTypesModule } from './modules/work-types/work-types.module';
@@ -10,11 +13,21 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { QrModule } from './modules/qr/qr.module';
 import { ExportModule } from './modules/export/export.module';
 import { SeedModule } from './seed/seed.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { BrigadesModule } from './modules/brigades/brigades.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { getTypeOrmPostgresFromConfig } from './database/database.config';
 import {
+  AttendanceRecord,
+  Brigade,
+  BrigadeMember,
   NurseryObject,
   Section,
   SectionCodeCounter,
+  Task,
+  User,
   WorkLog,
   WorkType,
 } from './entities';
@@ -35,11 +48,27 @@ import {
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         ...getTypeOrmPostgresFromConfig(config),
-        entities: [NurseryObject, Section, WorkType, WorkLog, SectionCodeCounter],
+        entities: [
+          NurseryObject,
+          Section,
+          WorkType,
+          WorkLog,
+          SectionCodeCounter,
+          User,
+          Brigade,
+          BrigadeMember,
+          Task,
+          AttendanceRecord,
+        ],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: config.get('DB_MIGRATE') !== 'false',
       }),
     }),
+    AuthModule,
+    UsersModule,
+    BrigadesModule,
+    TasksModule,
+    AttendanceModule,
     ObjectsModule,
     SectionsModule,
     WorkTypesModule,
@@ -48,6 +77,10 @@ import {
     QrModule,
     ExportModule,
     SeedModule,
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

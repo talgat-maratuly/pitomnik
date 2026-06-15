@@ -26,6 +26,11 @@ export class CreateWorkLogDto {
   workTypeId?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  taskId?: number;
+
+  @IsOptional()
   @IsString()
   @MaxLength(255)
   customWorkType?: string;
