@@ -16,6 +16,8 @@ const nav: NavItem[] = [
   { to: '/admin/attendance', label: 'Табель', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
   { to: '/admin/map', label: 'Карта работ', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
   { to: '/admin/tasks', label: 'Задачи', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+  { to: '/admin/warehouse', label: 'Склад', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+  { to: '/admin/products/import', label: 'Импорт Excel', roles: ['ADMIN'] },
   { to: '/admin/objects', label: 'Объекты и участки', roles: ['ADMIN', 'AGRONOMIST'] },
   { to: '/admin/work-types', label: 'Виды работ', roles: ['ADMIN'] },
   { to: '/admin/qr', label: 'QR-коды', roles: ['ADMIN'] },

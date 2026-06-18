@@ -18,14 +18,17 @@ import { UsersModule } from './modules/users/users.module';
 import { BrigadesModule } from './modules/brigades/brigades.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
+import { ProductsModule } from './modules/products/products.module';
 import { getTypeOrmPostgresFromConfig } from './database/database.config';
 import {
   AttendanceRecord,
   Brigade,
   BrigadeMember,
   NurseryObject,
+  Product,
   Section,
   SectionCodeCounter,
+  StockMovement,
   Task,
   User,
   WorkLog,
@@ -59,6 +62,8 @@ import {
           BrigadeMember,
           Task,
           AttendanceRecord,
+          Product,
+          StockMovement,
         ],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: config.get('DB_MIGRATE') !== 'false',
@@ -69,6 +74,7 @@ import {
     BrigadesModule,
     TasksModule,
     AttendanceModule,
+    ProductsModule,
     ObjectsModule,
     SectionsModule,
     WorkTypesModule,

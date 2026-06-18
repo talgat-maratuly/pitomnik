@@ -8,3 +8,5 @@ export { AttendanceRecord } from './attendance-record.entity';
 export { Brigade } from './brigade.entity';
 export { BrigadeMember } from './brigade-member.entity';
 export { Task } from './task.entity';
+export { Product } from './product.entity';
+export { StockMovement } from './stock-movement.entity';

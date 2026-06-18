@@ -19,6 +19,8 @@ import { UsersPage } from '@/pages/admin/UsersPage'
 import { BrigadesPage } from '@/pages/admin/BrigadesPage'
 import { TasksPage } from '@/pages/admin/TasksPage'
 import { AttendancePage } from '@/pages/admin/AttendancePage'
+import { WarehousePage } from '@/pages/admin/WarehousePage'
+import { ProductImportPage } from '@/pages/admin/ProductImportPage'
 import { WorkerLayout } from '@/pages/worker/WorkerLayout'
 import { WorkerTasksPage } from '@/pages/worker/WorkerTasksPage'
 import { HomeRedirect } from '@/components/HomeRedirect'
@@ -67,6 +69,8 @@ export default function App() {
             <Route path="brigades" element={<BrigadesPage />} />
             <Route path="tasks" element={<TasksPage />} />
             <Route path="attendance" element={<AttendancePage />} />
+            <Route path="warehouse" element={<WarehousePage />} />
+            <Route path="products/import" element={<ProductImportPage />} />
             <Route path="seed" element={<SeedPage />} />
           </Route>
         </Routes>
