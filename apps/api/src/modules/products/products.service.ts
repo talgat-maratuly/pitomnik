@@ -34,6 +34,13 @@ type ParsedExcelProduct = {
 
 function cleanString(value: unknown): string | null {
   if (value == null) return null;
+  if (typeof value === 'object' && 'result' in value) {
+    return cleanString((value as { result?: unknown }).result);
+  }
+  if (typeof value === 'object' && 'richText' in value) {
+    const richText = (value as { richText?: { text?: string }[] }).richText ?? [];
+    return cleanString(richText.map((part) => part.text ?? '').join(''));
+  }
   const raw =
     typeof value === 'object' && 'text' in value
       ? String((value as { text?: unknown }).text ?? '')

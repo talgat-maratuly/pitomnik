@@ -344,7 +344,7 @@ export function WarehousePage() {
               <th className="px-3 py-2 text-left">Артикул</th>
               <th className="px-3 py-2 text-left">Название</th>
               <th className="px-3 py-2 text-left">Ед. изм.</th>
-              <th className="px-3 py-2 text-right">Начальный остаток</th>
+              <th className="px-3 py-2 text-right">Количество</th>
               <th className="px-3 py-2 text-right">Приход</th>
               <th className="px-3 py-2 text-right">Расход</th>
               <th className="px-3 py-2 text-right">Текущий остаток</th>
