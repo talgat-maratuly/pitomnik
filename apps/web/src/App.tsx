@@ -70,6 +70,8 @@ export default function App() {
             <Route path="tasks" element={<TasksPage />} />
             <Route path="attendance" element={<AttendancePage />} />
             <Route path="warehouse" element={<WarehousePage />} />
+            <Route path="warehouse/issue" element={<WarehousePage />} />
+            <Route path="warehouse/export" element={<WarehousePage />} />
             <Route path="products/import" element={<ProductImportPage />} />
             <Route path="seed" element={<SeedPage />} />
           </Route>

@@ -10,28 +10,60 @@ type NavItem = {
   roles?: UserRole[]
 }
 
-const nav: NavItem[] = [
-  { to: '/admin', end: true, label: 'Главная' },
-  { to: '/admin/work-logs', label: 'Журнал работ', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-  { to: '/admin/attendance', label: 'Табель', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-  { to: '/admin/map', label: 'Карта работ', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-  { to: '/admin/tasks', label: 'Задачи', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-  { to: '/admin/warehouse', label: 'Склад', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-  { to: '/admin/products/import', label: 'Импорт Excel', roles: ['ADMIN'] },
-  { to: '/admin/objects', label: 'Объекты и участки', roles: ['ADMIN', 'AGRONOMIST'] },
-  { to: '/admin/work-types', label: 'Виды работ', roles: ['ADMIN'] },
-  { to: '/admin/qr', label: 'QR-коды', roles: ['ADMIN'] },
-  { to: '/admin/brigades', label: 'Бригады', roles: ['ADMIN', 'BRIGADIER'] },
-  { to: '/admin/users', label: 'Пользователи', roles: ['ADMIN'] },
-  { to: '/admin/form-settings', label: 'Настройки формы', roles: ['ADMIN'] },
-  { to: '/admin/export', label: 'Экспорт Excel', roles: ['ADMIN'] },
-  { to: '/admin/photos', label: 'Фотоотчёты', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-  { to: '/admin/seed', label: 'Seed запуск', roles: ['ADMIN'] },
+type NavGroup = {
+  title: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: 'Работы',
+    items: [
+      { to: '/admin', end: true, label: 'Главная' },
+      { to: '/admin/work-logs', label: 'Журнал работ', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/attendance', label: 'Табель', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/map', label: 'Карта работ', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/tasks', label: 'Задачи', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/objects', label: 'Объекты и участки', roles: ['ADMIN', 'AGRONOMIST'] },
+      { to: '/admin/work-types', label: 'Виды работ', roles: ['ADMIN'] },
+      { to: '/admin/qr', label: 'QR-коды', roles: ['ADMIN'] },
+      { to: '/admin/export', label: 'Экспорт работ (Excel)', roles: ['ADMIN'] },
+    ],
+  },
+  {
+    title: 'Склад',
+    items: [
+      { to: '/admin/products/import', label: 'Импорт товаров (Excel)', roles: ['ADMIN'] },
+      { to: '/admin/warehouse', label: 'Учет товаров и остатков', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/warehouse/issue', label: 'Выдача / Списание товаров', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/warehouse/export', label: 'Экспорт остатков (Excel)', roles: ['ADMIN'] },
+    ],
+  },
+  {
+    title: 'Персонал',
+    items: [
+      { to: '/admin/brigades', label: 'Бригады', roles: ['ADMIN', 'BRIGADIER'] },
+      { to: '/admin/users', label: 'Пользователи', roles: ['ADMIN'] },
+    ],
+  },
+  {
+    title: 'Настройки',
+    items: [
+      { to: '/admin/form-settings', label: 'Настройки формы', roles: ['ADMIN'] },
+      { to: '/admin/photos', label: 'Фотоотчёты', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/seed', label: 'Seed запуск', roles: ['ADMIN'] },
+    ],
+  },
 ]
 
 export function AdminLayout() {
   const { user, logout, hasRole } = useAuth()
-  const visibleNav = nav.filter((item) => !item.roles || hasRole(...item.roles))
+  const visibleGroups = navGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.roles || hasRole(...item.roles)),
+    }))
+    .filter((group) => group.items.length > 0)
 
   return (
     <div className="no-print flex min-h-screen flex-col md:flex-row">
@@ -47,22 +79,31 @@ export function AdminLayout() {
             </p>
           )}
         </div>
-        <nav className="flex gap-1 overflow-x-auto p-2 md:flex-col">
-          {visibleNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-                  isActive
-                    ? 'bg-emerald-100 text-emerald-900'
-                    : 'text-slate-600 hover:bg-slate-100'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
+        <nav className="flex gap-3 overflow-x-auto p-2 md:flex-col md:gap-4">
+          {visibleGroups.map((group) => (
+            <section key={group.title} className="min-w-max md:min-w-0">
+              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                {group.title}
+              </p>
+              <div className="flex gap-1 md:flex-col">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
+                        isActive
+                          ? 'bg-emerald-100 text-emerald-900'
+                          : 'text-slate-600 hover:bg-slate-100'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </section>
           ))}
         </nav>
         <div className="border-t border-slate-100 p-2">

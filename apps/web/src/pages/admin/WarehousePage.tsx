@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fetchObjectsWithSections, type NurseryObjectWithSections } from '@/api/objectsApi'
 import {
@@ -50,12 +51,15 @@ function statusClass(status: Product['status']): string {
 }
 
 export function WarehousePage() {
+  const location = useLocation()
   const [products, setProducts] = useState<Product[]>([])
   const [objects, setObjects] = useState<NurseryObjectWithSections[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
   const [search, setSearch] = useState('')
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null)
-  const [showMovementForm, setShowMovementForm] = useState(false)
+  const [showMovementForm, setShowMovementForm] = useState(() =>
+    location.pathname.endsWith('/issue'),
+  )
   const [form, setForm] = useState<MovementForm>(emptyMovementForm)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -106,6 +110,12 @@ export function WarehousePage() {
     void loadInitial()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (location.pathname.endsWith('/issue')) {
+      setShowMovementForm(true)
+    }
+  }, [location.pathname])
 
   async function handleSearch(e: FormEvent) {
     e.preventDefault()
