@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Header, Post, Query, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
+import * as QRCode from 'qrcode';
+import { buildCheckOutUrl } from '../../common/app-url';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -24,6 +27,19 @@ export class AttendanceController {
   @Post('check-out')
   checkOut(@Body() dto: CheckOutDto) {
     return this.attendanceService.checkOut(dto);
+  }
+
+  @Public()
+  @Get('check-out/qr.png')
+  @Header('Content-Type', 'image/png')
+  @Header('Content-Disposition', 'attachment; filename="qr-attendance-check-out.png"')
+  async getCheckOutQr(@Res() res: Response) {
+    const buffer = await QRCode.toBuffer(buildCheckOutUrl(), {
+      type: 'png',
+      width: 1024,
+      margin: 2,
+    });
+    res.send(buffer);
   }
 
   @Get()

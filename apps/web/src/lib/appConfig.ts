@@ -34,5 +34,5 @@ export function buildQrImageUrl(sectionCode: string): string {
 export function buildCheckOutQrImageUrl(): string {
   const base = import.meta.env.VITE_API_URL?.replace(/\/$/, '') || 'http://localhost:3001/api'
   const origin = base.replace(/\/api$/, '') || 'http://localhost:3001'
-  return `${origin}/api/qr/checkout`
+  return `${origin}/api/attendance/check-out/qr.png`
 }

@@ -4,7 +4,7 @@ import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
 import { Toast } from '@/components/Toast'
 import { Button } from '@/components/ui/Button'
 import { fetchSections } from '@/api/sectionsApi'
-import { API_ORIGIN, toUserMessage } from '@/api/client'
+import { API_ORIGIN, apiDownload, toUserMessage } from '@/api/client'
 import { buildCheckOutQrImageUrl, buildCheckOutUrl, buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
 import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { Section } from '@/lib/types'
@@ -67,11 +67,22 @@ export function QrPage() {
     setAutoPrint(false)
   }
 
-  function downloadCheckOutQr() {
-    const a = document.createElement('a')
-    a.href = buildCheckOutQrImageUrl()
-    a.download = 'qr-checkout.png'
-    a.click()
+  async function downloadCheckOutQr() {
+    try {
+      const blob = await apiDownload('/attendance/check-out/qr.png')
+      if (!blob.type.includes('image/png')) {
+        throw new Error('Expected PNG image')
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'qr-attendance-check-out.png'
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('[qr/check-out-download]', err)
+      setError('Не удалось скачать QR-код. Попробуйте еще раз.')
+    }
   }
 
   const checkOutUrl = buildCheckOutUrl()
@@ -96,7 +107,7 @@ export function QrPage() {
               {checkOutUrl}
             </a>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={downloadCheckOutQr}>
+              <Button variant="secondary" onClick={() => void downloadCheckOutQr()}>
                 Скачать PNG
               </Button>
               <Button onClick={() => window.open(checkOutUrl, '_blank')}>Открыть форму ухода</Button>
