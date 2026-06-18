@@ -66,6 +66,13 @@ export class UsersService {
     return this.authService.toPublicUser(saved);
   }
 
+  async changePassword(id: number, password: string) {
+    const row = await this.findOne(id);
+    row.passwordHash = await bcrypt.hash(password, 10);
+    const saved = await this.userRepo.save(row);
+    return this.authService.toPublicUser(saved);
+  }
+
   async remove(id: number) {
     const row = await this.findOne(id);
     await this.userRepo.remove(row);

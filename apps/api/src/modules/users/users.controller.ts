@@ -12,6 +12,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../../common/enums/user-role.enum';
+import { ChangeUserPasswordDto } from './dto/change-user-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -50,6 +51,14 @@ export class UsersController {
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
+  }
+
+  @Patch(':id/password')
+  changePassword(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ChangeUserPasswordDto,
+  ) {
+    return this.usersService.changePassword(id, dto.password);
   }
 
   @Delete(':id')
