@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -38,11 +39,23 @@ export class ProductsController {
       limits: { fileSize: 25 * 1024 * 1024 },
     }),
   )
-  importExcel(@UploadedFile() file: Express.Multer.File, @CurrentUser() user: User) {
+  importExcel(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: User,
+    @Query('fullSync') fullSync?: string,
+  ) {
     if (!file) {
       throw new BadRequestException('Загрузите Excel-файл');
     }
-    return this.productsService.importExcel(file.buffer, user);
+    return this.productsService.importExcel(file.buffer, user, {
+      fullSync: fullSync === 'true',
+    });
+  }
+
+  @Delete('imported')
+  @Roles(UserRole.ADMIN)
+  clearImportedProducts() {
+    return this.productsService.clearImportedProducts();
   }
 
   @Get('export.xlsx')

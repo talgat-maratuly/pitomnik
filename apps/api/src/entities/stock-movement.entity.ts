@@ -17,8 +17,8 @@ export class StockMovement {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ name: 'product_id' })
-  productId!: number;
+  @Column({ name: 'product_id', nullable: true })
+  productId!: number | null;
 
   @Column({ type: 'varchar', length: 32 })
   type!: StockMovementType;
@@ -50,9 +50,9 @@ export class StockMovement {
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 
-  @ManyToOne(() => Product, (product) => product.movements, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Product, (product) => product.movements, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'product_id' })
-  product!: Product;
+  product!: Product | null;
 
   @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'created_by_id' })

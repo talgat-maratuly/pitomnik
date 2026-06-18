@@ -78,7 +78,8 @@ function normalizeHeader(value: unknown): string {
     .replace(/[^a-zа-я0-9]+/g, '');
 }
 
-function productStatus(product: Product): 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' {
+function productStatus(product: Product): 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE' {
+  if (!product.isActual) return 'INACTIVE';
   const current = num(product.currentQuantity);
   if (current <= 0) return 'OUT_OF_STOCK';
   if (current <= 5) return 'LOW_STOCK';
@@ -118,6 +119,7 @@ export class ProductsService {
       code1C: product.code1C,
       source: product.source,
       lastSyncAt: product.lastSyncAt,
+      isActual: product.isActual,
       status: productStatus(product),
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
@@ -156,15 +158,22 @@ export class ProductsService {
 
   private async findExisting(parsed: ParsedExcelProduct): Promise<Product | null> {
     if (!parsed.code && !parsed.article) return null;
-    return this.productRepo
-      .createQueryBuilder('product')
-      .where(
-        new Brackets((qb) => {
-          if (parsed.code) qb.orWhere('product.code = :code', { code: parsed.code });
-          if (parsed.article) qb.orWhere('product.article = :article', { article: parsed.article });
-        }),
-      )
-      .getOne();
+    const qb = this.productRepo.createQueryBuilder('product');
+    qb.where(
+      new Brackets((where) => {
+        if (parsed.code) where.orWhere('product.code = :code', { code: parsed.code });
+        if (parsed.article) where.orWhere('product.article = :article', { article: parsed.article });
+      }),
+    );
+    qb.orderBy(
+      `CASE
+        WHEN product.code = :code THEN 0
+        WHEN product.article = :article THEN 1
+        ELSE 2
+      END`,
+      'ASC',
+    ).setParameters({ code: parsed.code ?? '', article: parsed.article ?? '' });
+    return qb.getOne();
   }
 
   async findAll(query: ProductQueryDto) {
@@ -266,7 +275,29 @@ export class ProductsService {
     };
   }
 
-  async importExcel(buffer: Buffer, user: User) {
+  private applyExcelProduct(product: Product, parsed: ParsedExcelProduct) {
+    product.code = parsed.code;
+    product.article = parsed.article;
+    product.name = parsed.name;
+    product.unit = parsed.unit;
+    product.accountingPrice = toMoney(parsed.accountingPrice);
+    product.salePrice = toMoney(parsed.salePrice);
+    product.ourPrice = toMoney(parsed.ourPrice);
+    product.markupPercent = parsed.markupPercent == null ? null : toMoney(parsed.markupPercent);
+
+    // Excel is the source of truth for the stock balance during import.
+    product.currentQuantity = toQuantity(parsed.quantity);
+    product.initialQuantity = toQuantity(
+      parsed.quantity - num(product.incomingQuantity) + num(product.outgoingQuantity),
+    );
+    product.totalAmount =
+      parsed.totalAmount > 0 ? toMoney(parsed.totalAmount) : toMoney(parsed.quantity * parsed.accountingPrice);
+    product.source = ProductSource.EXCEL;
+    product.lastSyncAt = new Date();
+    product.isActual = true;
+  }
+
+  async importExcel(buffer: Buffer, user: User, options: { fullSync?: boolean } = {}) {
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer as unknown as ArrayBuffer);
     const worksheet = workbook.worksheets[0];
@@ -287,10 +318,12 @@ export class ProductsService {
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let markedInactive = 0;
+    const seenProductIds = new Set<number>();
 
     for (let i = headerRowNumber + 1; i <= worksheet.rowCount; i += 1) {
       const parsed = this.parseRow(worksheet.getRow(i), headers);
-      if (!parsed) {
+      if (!parsed || (!parsed.code && !parsed.article)) {
         skipped += 1;
         continue;
       }
@@ -302,21 +335,10 @@ export class ProductsService {
         outgoingQuantity: '0',
       });
 
-      product.code = parsed.code;
-      product.article = parsed.article;
-      product.name = parsed.name;
-      product.unit = parsed.unit;
-      product.accountingPrice = toMoney(parsed.accountingPrice);
-      product.salePrice = toMoney(parsed.salePrice);
-      product.ourPrice = toMoney(parsed.ourPrice);
-      product.markupPercent = parsed.markupPercent == null ? null : toMoney(parsed.markupPercent);
-      product.initialQuantity = toQuantity(parsed.quantity);
-      product.source = ProductSource.EXCEL;
-      product.lastSyncAt = new Date();
-      this.recalcProduct(product);
-      if (parsed.totalAmount > 0) product.totalAmount = toMoney(parsed.totalAmount);
+      this.applyExcelProduct(product, parsed);
 
       const saved = await this.productRepo.save(product);
+      seenProductIds.add(saved.id);
       await this.movementRepo.save(
         this.movementRepo.create({
           productId: saved.id,
@@ -331,7 +353,26 @@ export class ProductsService {
       else updated += 1;
     }
 
-    return { created, updated, skipped, total: created + updated };
+    if (options.fullSync) {
+      const qb = this.productRepo
+        .createQueryBuilder()
+        .update(Product)
+        .set({ isActual: false })
+        .where('source = :source', { source: ProductSource.EXCEL })
+        .andWhere('is_actual = true');
+      if (seenProductIds.size > 0) {
+        qb.andWhere('id NOT IN (:...ids)', { ids: [...seenProductIds] });
+      }
+      const result = await qb.execute();
+      markedInactive = result.affected ?? 0;
+    }
+
+    return { created, updated, skipped, markedInactive, total: created + updated };
+  }
+
+  async clearImportedProducts() {
+    const result = await this.productRepo.delete({ source: ProductSource.EXCEL });
+    return { deleted: result.affected ?? 0 };
   }
 
   async createMovement(dto: CreateStockMovementDto, user: User) {

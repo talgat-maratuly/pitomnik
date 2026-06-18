@@ -68,6 +68,9 @@ export class Product {
   @Column({ name: 'last_sync_at', type: 'timestamptz', nullable: true })
   lastSyncAt!: Date | null;
 
+  @Column({ name: 'is_actual', default: true })
+  isActual!: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
 

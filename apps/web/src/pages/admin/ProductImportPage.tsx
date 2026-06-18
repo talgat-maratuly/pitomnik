@@ -8,14 +8,13 @@ export function ProductImportPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault()
+  async function runImport(fullSync: boolean) {
     if (!file) return
     setSubmitting(true)
     setError(null)
     setResult(null)
     try {
-      const data = await importProductsExcel(file)
+      const data = await importProductsExcel(file, { fullSync })
       setResult(data)
       setFile(null)
     } catch (err) {
@@ -24,6 +23,11 @@ export function ProductImportPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    await runImport(false)
   }
 
   return (
@@ -61,19 +65,29 @@ export function ProductImportPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={!file || submitting}
-          className="rounded-lg bg-emerald-700 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? 'Импорт…' : 'Загрузить и импортировать'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={!file || submitting}
+            className="rounded-lg bg-emerald-700 px-4 py-2 text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitting ? 'Импорт…' : 'Загрузить и импортировать'}
+          </button>
+          <button
+            type="button"
+            disabled={!file || submitting}
+            onClick={() => void runImport(true)}
+            className="rounded-lg border border-emerald-700 px-4 py-2 text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Полностью обновить склад из Excel
+          </button>
+        </div>
       </form>
 
       {result && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm">
           <h2 className="font-semibold text-emerald-900">Импорт завершён</h2>
-          <div className="mt-3 grid gap-2 sm:grid-cols-4">
+          <div className="mt-3 grid gap-2 sm:grid-cols-5">
             <div className="rounded-lg bg-white p-3">
               <p className="text-slate-500">Создано</p>
               <p className="text-xl font-bold">{result.created}</p>
@@ -89,6 +103,10 @@ export function ProductImportPage() {
             <div className="rounded-lg bg-white p-3">
               <p className="text-slate-500">Всего обработано</p>
               <p className="text-xl font-bold">{result.total}</p>
+            </div>
+            <div className="rounded-lg bg-white p-3">
+              <p className="text-slate-500">Неактуальные</p>
+              <p className="text-xl font-bold">{result.markedInactive}</p>
             </div>
           </div>
         </div>

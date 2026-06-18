@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fetchObjectsWithSections, type NurseryObjectWithSections } from '@/api/objectsApi'
 import {
+  clearImportedProducts,
   createStockMovement,
   downloadProductsExcel,
   fetchProducts,
@@ -45,6 +46,7 @@ function fmtNumber(value: number, digits = 2): string {
 }
 
 function statusClass(status: Product['status']): string {
+  if (status === 'INACTIVE') return 'bg-slate-100 text-slate-600'
   if (status === 'OUT_OF_STOCK') return 'bg-red-100 text-red-800'
   if (status === 'LOW_STOCK') return 'bg-amber-100 text-amber-800'
   return 'bg-emerald-100 text-emerald-800'
@@ -188,6 +190,23 @@ export function WarehousePage() {
     }
   }
 
+  async function handleClearImported() {
+    const confirmed = window.confirm(
+      'Вы действительно хотите очистить импортированные товары? Это действие нельзя отменить.',
+    )
+    if (!confirmed) return
+    setError(null)
+    try {
+      await clearImportedProducts()
+      setSelectedProductId(null)
+      setMovements([])
+      await loadProducts()
+    } catch (err) {
+      console.error('[warehouse/clear-imported]', err)
+      setError(toUserMessage(err, 'Не удалось очистить импортированные товары'))
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -211,6 +230,13 @@ export function WarehousePage() {
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
           >
             Скачать остатки Excel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleClearImported()}
+            className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+          >
+            Очистить импортированные данные
           </button>
         </div>
       </div>
@@ -374,7 +400,7 @@ export function WarehousePage() {
                   <td className="px-3 py-2">{p.article ?? '—'}</td>
                   <td className="px-3 py-2 min-w-[16rem] font-medium">{p.name}</td>
                   <td className="px-3 py-2">{p.unit ?? '—'}</td>
-                  <td className="px-3 py-2 text-right">{fmtNumber(p.initialQuantity, 3)}</td>
+                  <td className="px-3 py-2 text-right">{fmtNumber(p.currentQuantity, 3)}</td>
                   <td className="px-3 py-2 text-right">{fmtNumber(p.incomingQuantity, 3)}</td>
                   <td className="px-3 py-2 text-right">{fmtNumber(p.outgoingQuantity, 3)}</td>
                   <td className="px-3 py-2 text-right font-semibold">{fmtNumber(p.currentQuantity, 3)}</td>

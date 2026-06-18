@@ -1,7 +1,7 @@
 import { apiDownload, apiRequest } from './client'
 
 export type ProductSource = 'EXCEL' | 'MANUAL' | '1C'
-export type ProductStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK'
+export type ProductStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'INACTIVE'
 export type StockMovementType = 'IMPORT' | 'INCOME' | 'OUTCOME' | 'WRITE_OFF' | 'CORRECTION'
 
 export type Product = {
@@ -23,6 +23,7 @@ export type Product = {
   code1C: string | null
   source: ProductSource
   lastSyncAt: string | null
+  isActual: boolean
   status: ProductStatus
   createdAt: string
   updatedAt: string
@@ -51,13 +52,19 @@ export type ProductImportResult = {
   created: number
   updated: number
   skipped: number
+  markedInactive: number
   total: number
+}
+
+export type ClearImportedResult = {
+  deleted: number
 }
 
 export const PRODUCT_STATUS_LABELS: Record<ProductStatus, string> = {
   IN_STOCK: 'В наличии',
   LOW_STOCK: 'Мало осталось',
   OUT_OF_STOCK: 'Закончился',
+  INACTIVE: 'Неактуальный',
 }
 
 export const STOCK_MOVEMENT_LABELS: Record<StockMovementType, string> = {
@@ -79,13 +86,23 @@ export async function fetchProduct(id: number): Promise<Product> {
   return apiRequest<Product>(`/products/${id}`)
 }
 
-export async function importProductsExcel(file: File): Promise<ProductImportResult> {
+export async function importProductsExcel(
+  file: File,
+  options: { fullSync?: boolean } = {}
+): Promise<ProductImportResult> {
   const formData = new FormData()
   formData.append('file', file)
-  return apiRequest<ProductImportResult>('/products/import-excel', {
+  return apiRequest<ProductImportResult>(
+    `/products/import-excel${options.fullSync ? '?fullSync=true' : ''}`,
+    {
     method: 'POST',
     body: formData,
-  })
+    }
+  )
+}
+
+export async function clearImportedProducts(): Promise<ClearImportedResult> {
+  return apiRequest<ClearImportedResult>('/products/imported', { method: 'DELETE' })
 }
 
 export async function createStockMovement(payload: {
