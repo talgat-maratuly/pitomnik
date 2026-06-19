@@ -21,6 +21,7 @@ import { TasksPage } from '@/pages/admin/TasksPage'
 import { AttendancePage } from '@/pages/admin/AttendancePage'
 import { WarehousePage } from '@/pages/admin/WarehousePage'
 import { ProductImportPage } from '@/pages/admin/ProductImportPage'
+import { AiAgronomPage } from '@/pages/admin/AiAgronomPage'
 import { WorkerLayout } from '@/pages/worker/WorkerLayout'
 import { WorkerTasksPage } from '@/pages/worker/WorkerTasksPage'
 import { HomeRedirect } from '@/components/HomeRedirect'
@@ -73,6 +74,14 @@ export default function App() {
             <Route path="warehouse/issue" element={<WarehousePage />} />
             <Route path="warehouse/export" element={<WarehousePage />} />
             <Route path="products/import" element={<ProductImportPage />} />
+            <Route
+              path="ai-agronom"
+              element={
+                <ProtectedRoute roles={['ADMIN', 'AGRONOMIST']}>
+                  <AiAgronomPage />
+                </ProtectedRoute>
+              }
+            />
             <Route path="seed" element={<SeedPage />} />
           </Route>
         </Routes>

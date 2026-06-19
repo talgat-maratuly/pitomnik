@@ -1,4 +1,5 @@
 export { NurseryObject } from './nursery-object.entity';
+export { AiAgronomAnalysis } from './ai-agronom-analysis.entity';
 export { Section } from './section.entity';
 export { WorkType } from './work-type.entity';
 export { WorkLog } from './work-log.entity';

@@ -19,8 +19,10 @@ import { BrigadesModule } from './modules/brigades/brigades.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ProductsModule } from './modules/products/products.module';
+import { AiAgronomModule } from './modules/ai-agronom/ai-agronom.module';
 import { getTypeOrmPostgresFromConfig } from './database/database.config';
 import {
+  AiAgronomAnalysis,
   AttendanceRecord,
   Brigade,
   BrigadeMember,
@@ -64,6 +66,7 @@ import {
           AttendanceRecord,
           Product,
           StockMovement,
+          AiAgronomAnalysis,
         ],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: config.get('DB_MIGRATE') !== 'false',
@@ -75,6 +78,7 @@ import {
     TasksModule,
     AttendanceModule,
     ProductsModule,
+    AiAgronomModule,
     ObjectsModule,
     SectionsModule,
     WorkTypesModule,
