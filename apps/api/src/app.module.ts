@@ -20,6 +20,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ProductsModule } from './modules/products/products.module';
 import { AiAgronomModule } from './modules/ai-agronom/ai-agronom.module';
+import { AdminAiModule } from './modules/admin-ai/admin-ai.module';
 import { getTypeOrmPostgresFromConfig } from './database/database.config';
 import {
   AiAgronomAnalysis,
@@ -79,6 +80,7 @@ import {
     AttendanceModule,
     ProductsModule,
     AiAgronomModule,
+    AdminAiModule,
     ObjectsModule,
     SectionsModule,
     WorkTypesModule,

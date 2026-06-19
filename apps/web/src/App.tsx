@@ -22,6 +22,7 @@ import { AttendancePage } from '@/pages/admin/AttendancePage'
 import { WarehousePage } from '@/pages/admin/WarehousePage'
 import { ProductImportPage } from '@/pages/admin/ProductImportPage'
 import { AiAgronomPage } from '@/pages/admin/AiAgronomPage'
+import { AdminAiAssistantPage } from '@/pages/admin/AdminAiAssistantPage'
 import { WorkerLayout } from '@/pages/worker/WorkerLayout'
 import { WorkerTasksPage } from '@/pages/worker/WorkerTasksPage'
 import { HomeRedirect } from '@/components/HomeRedirect'
@@ -79,6 +80,14 @@ export default function App() {
               element={
                 <ProtectedRoute roles={['ADMIN', 'AGRONOMIST']}>
                   <AiAgronomPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ai-assistant"
+              element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <AdminAiAssistantPage />
                 </ProtectedRoute>
               }
             />

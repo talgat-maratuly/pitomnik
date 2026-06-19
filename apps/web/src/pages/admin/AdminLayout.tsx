@@ -28,6 +28,7 @@ const navGroups: NavGroup[] = [
       { to: '/admin/work-types', label: 'Виды работ', roles: ['ADMIN'] },
       { to: '/admin/qr', label: 'QR-коды', roles: ['ADMIN'] },
       { to: '/admin/ai-agronom', label: '🌿 AI-Агроном', roles: ['ADMIN', 'AGRONOMIST'] },
+      { to: '/admin/ai-assistant', label: 'AI-помощник администратора', roles: ['ADMIN'] },
       { to: '/admin/export', label: 'Экспорт работ (Excel)', roles: ['ADMIN'] },
     ],
   },
