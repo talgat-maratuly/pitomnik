@@ -1,6 +1,6 @@
 import { apiRequest } from './client'
 
-export type AiPlantStatus = 'GOOD' | 'ATTENTION' | 'PROBLEM'
+export type AiPlantStatus = 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'BAD' | 'CRITICAL'
 
 export type AiAgronomAnalysis = {
   id: number
@@ -11,9 +11,23 @@ export type AiAgronomAnalysis = {
   photoUrl: string
   status: AiPlantStatus
   confidence: number
+  healthPercent: number
+  droughtSigns: boolean
+  burnSigns: boolean
+  weedsPresent: boolean
+  diseaseSigns: boolean
+  pestSigns: boolean
+  yellowingLeaves: boolean
+  nutritionDeficiency: boolean
+  mechanicalDamage: boolean
+  fireDamage: boolean
+  severeDrying: boolean
+  massDieOff: boolean
+  growthStage: string | null
   aiComment: string
   recommendations: string[]
   agronomistComment: string | null
+  modelName: string | null
   createdAt: string
   createdBy: { id: number; fullName: string } | null
   object: { id: number; name: string } | null
@@ -29,9 +43,11 @@ export type AiAgronomStats = {
 }
 
 export const AI_STATUS_LABELS: Record<AiPlantStatus, string> = {
+  EXCELLENT: '🟢 Отличное',
   GOOD: '🟢 Хорошее',
-  ATTENTION: '🟡 Требует внимания',
-  PROBLEM: '🔴 Проблемное',
+  AVERAGE: '🟡 Среднее',
+  BAD: '🔴 Плохое',
+  CRITICAL: '🔴 Критическое',
 }
 
 export async function createAiAnalysis(payload: {

@@ -16,9 +16,13 @@ const DISCLAIMER =
   'AI-анализ носит рекомендательный характер и не заменяет профессиональное заключение агронома.'
 
 function statusClass(status: AiAgronomAnalysis['status']) {
-  if (status === 'PROBLEM') return 'border-red-200 bg-red-50 text-red-900'
-  if (status === 'ATTENTION') return 'border-amber-200 bg-amber-50 text-amber-900'
+  if (status === 'CRITICAL' || status === 'BAD') return 'border-red-200 bg-red-50 text-red-900'
+  if (status === 'AVERAGE') return 'border-amber-200 bg-amber-50 text-amber-900'
   return 'border-emerald-200 bg-emerald-50 text-emerald-900'
+}
+
+function yesNo(value: boolean) {
+  return value ? 'Да' : 'Нет'
 }
 
 export function AiAgronomPage() {
@@ -207,6 +211,18 @@ export function AiAgronomPage() {
             <div>
               <p className="text-lg font-semibold">Состояние: {AI_STATUS_LABELS[result.status]}</p>
               <p className="mt-1">Вероятность определения: {result.confidence}%</p>
+              <p className="mt-1">Общее здоровье растения: {result.healthPercent}%</p>
+              <p className="mt-1">Стадия роста: {result.growthStage || 'не определена'}</p>
+              <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+                <p>Признаки засухи: {yesNo(result.droughtSigns)}</p>
+                <p>Признаки ожога: {yesNo(result.burnSigns)}</p>
+                <p>Сорняки: {yesNo(result.weedsPresent)}</p>
+                <p>Болезни: {yesNo(result.diseaseSigns)}</p>
+                <p>Вредители: {yesNo(result.pestSigns)}</p>
+                <p>Пожелтение листьев: {yesNo(result.yellowingLeaves)}</p>
+                <p>Дефицит питания: {yesNo(result.nutritionDeficiency)}</p>
+                <p>Механические повреждения: {yesNo(result.mechanicalDamage)}</p>
+              </div>
               <h3 className="mt-4 font-semibold">AI-комментарий</h3>
               <p className="mt-1 text-sm">{result.aiComment}</p>
               <h3 className="mt-4 font-semibold">AI-рекомендации</h3>
@@ -215,6 +231,9 @@ export function AiAgronomPage() {
                   <li key={item}>{item}</li>
                 ))}
               </ul>
+              {result.modelName && (
+                <p className="mt-4 text-xs opacity-70">Модель: {result.modelName}</p>
+              )}
             </div>
           </div>
           <p className="mt-4 rounded-lg bg-white/70 p-3 text-sm">{DISCLAIMER}</p>

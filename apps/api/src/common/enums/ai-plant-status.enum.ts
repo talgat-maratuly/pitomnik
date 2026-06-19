@@ -1,5 +1,7 @@
 export enum AiPlantStatus {
+  EXCELLENT = 'EXCELLENT',
   GOOD = 'GOOD',
-  ATTENTION = 'ATTENTION',
-  PROBLEM = 'PROBLEM',
+  AVERAGE = 'AVERAGE',
+  BAD = 'BAD',
+  CRITICAL = 'CRITICAL',
 }
