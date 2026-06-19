@@ -35,6 +35,8 @@ export function UsersPage() {
   const [createForm, setCreateForm] = useState<UserForm>(emptyForm)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editForm, setEditForm] = useState<UserForm>(emptyForm)
+  const [showCreatePassword, setShowCreatePassword] = useState(false)
+  const [showEditPassword, setShowEditPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
@@ -58,6 +60,7 @@ export function UsersPage() {
       brigadeId: user.brigadeId != null ? String(user.brigadeId) : '',
       isActive: user.isActive,
     })
+    setShowEditPassword(false)
     setError(null)
     setSuccess(null)
   }
@@ -65,6 +68,7 @@ export function UsersPage() {
   function cancelEdit() {
     setEditingId(null)
     setEditForm(emptyForm())
+    setShowEditPassword(false)
   }
 
   async function handleCreate(e: FormEvent) {
@@ -81,6 +85,7 @@ export function UsersPage() {
         isActive: createForm.isActive,
       })
       setCreateForm(emptyForm())
+      setShowCreatePassword(false)
       setSuccess('Пользователь успешно создан.')
       await reload()
     } catch (err) {
@@ -209,17 +214,26 @@ export function UsersPage() {
           autoComplete="off"
           name="new-user-username"
         />
-        <input
-          className="rounded-lg border px-3 py-2"
-          type="password"
-          placeholder="Пароль *"
-          value={createForm.password}
-          onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
-          required
-          minLength={4}
-          autoComplete="new-password"
-          name="new-user-password"
-        />
+        <div className="flex rounded-lg border bg-white">
+          <input
+            className="min-w-0 flex-1 rounded-l-lg px-3 py-2 outline-none"
+            type={showCreatePassword ? 'text' : 'password'}
+            placeholder="Пароль *"
+            value={createForm.password}
+            onChange={(e) => setCreateForm((f) => ({ ...f, password: e.target.value }))}
+            required
+            minLength={4}
+            autoComplete="new-password"
+            name="new-user-password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCreatePassword((v) => !v)}
+            className="shrink-0 rounded-r-lg border-l px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+          >
+            {showCreatePassword ? '🙈 Скрыть' : '👁 Показать'}
+          </button>
+        </div>
         {renderRoleSelect(createForm.role, (role) => setCreateForm((f) => ({ ...f, role })))}
         {renderBrigadeSelect(createForm.brigadeId, (brigadeId) =>
           setCreateForm((f) => ({ ...f, brigadeId })),
@@ -256,15 +270,24 @@ export function UsersPage() {
             autoComplete="off"
             name="edit-user-username"
           />
-          <input
-            className="rounded-lg border px-3 py-2"
-            type="password"
-            placeholder="Новый пароль (оставьте пустым, чтобы не менять)"
-            value={editForm.password}
-            onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
-            autoComplete="new-password"
-            name="edit-user-new-password"
-          />
+          <div className="flex rounded-lg border bg-white">
+            <input
+              className="min-w-0 flex-1 rounded-l-lg px-3 py-2 outline-none"
+              type={showEditPassword ? 'text' : 'password'}
+              placeholder="Новый пароль (оставьте пустым, чтобы не менять)"
+              value={editForm.password}
+              onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+              autoComplete="new-password"
+              name="edit-user-new-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowEditPassword((v) => !v)}
+              className="shrink-0 rounded-r-lg border-l px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            >
+              {showEditPassword ? '🙈 Скрыть' : '👁 Показать'}
+            </button>
+          </div>
           {renderRoleSelect(editForm.role, (role) => setEditForm((f) => ({ ...f, role })))}
           {renderBrigadeSelect(editForm.brigadeId, (brigadeId) =>
             setEditForm((f) => ({ ...f, brigadeId })),
