@@ -71,10 +71,38 @@ export default function App() {
             <Route path="brigades" element={<BrigadesPage />} />
             <Route path="tasks" element={<TasksPage />} />
             <Route path="attendance" element={<AttendancePage />} />
-            <Route path="warehouse" element={<WarehousePage />} />
-            <Route path="warehouse/issue" element={<WarehousePage />} />
-            <Route path="warehouse/export" element={<WarehousePage />} />
-            <Route path="products/import" element={<ProductImportPage />} />
+            <Route
+              path="warehouse"
+              element={
+                <ProtectedRoute roles={['ADMIN', 'BRIGADIER']}>
+                  <WarehousePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="warehouse/issue"
+              element={
+                <ProtectedRoute roles={['ADMIN', 'BRIGADIER']}>
+                  <WarehousePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="warehouse/export"
+              element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <WarehousePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="products/import"
+              element={
+                <ProtectedRoute roles={['ADMIN']}>
+                  <ProductImportPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="ai-agronom"
               element={

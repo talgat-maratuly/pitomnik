@@ -10,7 +10,7 @@ import { ProductsService } from './products.service';
 
 @ApiTags('stock-movements')
 @Controller('stock-movements')
-@Roles(UserRole.ADMIN, UserRole.BRIGADIER, UserRole.AGRONOMIST)
+@Roles(UserRole.ADMIN, UserRole.BRIGADIER)
 export class StockMovementsController {
   constructor(private readonly productsService: ProductsService) {}
 
@@ -20,7 +20,7 @@ export class StockMovementsController {
   }
 
   @Get()
-  findAll(@Query() query: StockMovementQueryDto) {
-    return this.productsService.findMovements(query);
+  findAll(@Query() query: StockMovementQueryDto, @CurrentUser() user: User) {
+    return this.productsService.findMovements(query, user);
   }
 }

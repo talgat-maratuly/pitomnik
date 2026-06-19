@@ -27,7 +27,7 @@ import { ProductsService } from './products.service';
 
 @ApiTags('products')
 @Controller('products')
-@Roles(UserRole.ADMIN, UserRole.BRIGADIER, UserRole.AGRONOMIST)
+@Roles(UserRole.ADMIN, UserRole.BRIGADIER)
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 

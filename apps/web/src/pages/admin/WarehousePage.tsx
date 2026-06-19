@@ -15,6 +15,7 @@ import {
   type StockMovementType,
 } from '@/api/productsApi'
 import { toUserMessage } from '@/api/client'
+import { useAuth } from '@/context/AuthContext'
 
 type MovementForm = {
   productId: string
@@ -54,6 +55,7 @@ function statusClass(status: Product['status']): string {
 
 export function WarehousePage() {
   const location = useLocation()
+  const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
   const [objects, setObjects] = useState<NurseryObjectWithSections[]>([])
   const [movements, setMovements] = useState<StockMovement[]>([])
@@ -224,20 +226,24 @@ export function WarehousePage() {
           >
             Выдать / списать товар
           </button>
-          <button
-            type="button"
-            onClick={() => void handleExport()}
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
-          >
-            Скачать остатки Excel
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleClearImported()}
-            className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-          >
-            Очистить импортированные данные
-          </button>
+          {user?.role === 'ADMIN' && (
+            <>
+              <button
+                type="button"
+                onClick={() => void handleExport()}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700"
+              >
+                Скачать остатки Excel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleClearImported()}
+                className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+              >
+                Очистить импортированные данные
+              </button>
+            </>
+          )}
         </div>
       </div>
 

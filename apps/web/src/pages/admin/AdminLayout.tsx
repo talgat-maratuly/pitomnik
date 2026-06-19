@@ -36,8 +36,8 @@ const navGroups: NavGroup[] = [
     title: 'Склад',
     items: [
       { to: '/admin/products/import', label: 'Импорт товаров (Excel)', roles: ['ADMIN'] },
-      { to: '/admin/warehouse', label: 'Учет товаров и остатков', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
-      { to: '/admin/warehouse/issue', label: 'Выдача / Списание товаров', roles: ['ADMIN', 'BRIGADIER', 'AGRONOMIST'] },
+      { to: '/admin/warehouse', label: 'Учет товаров и остатков', roles: ['ADMIN', 'BRIGADIER'] },
+      { to: '/admin/warehouse/issue', label: 'Выдача / Списание товаров', roles: ['ADMIN', 'BRIGADIER'] },
       { to: '/admin/warehouse/export', label: 'Экспорт остатков (Excel)', roles: ['ADMIN'] },
     ],
   },

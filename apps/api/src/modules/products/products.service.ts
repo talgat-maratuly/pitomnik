@@ -9,6 +9,7 @@ import ExcelJS from 'exceljs';
 import { Brackets, Repository } from 'typeorm';
 import { ProductSource } from '../../common/enums/product-source.enum';
 import { StockMovementType } from '../../common/enums/stock-movement-type.enum';
+import { UserRole } from '../../common/enums/user-role.enum';
 import { NurseryObject } from '../../entities/nursery-object.entity';
 import { Product } from '../../entities/product.entity';
 import { Section } from '../../entities/section.entity';
@@ -433,7 +434,7 @@ export class ProductsService {
     return this.mapMovement(row);
   }
 
-  async findMovements(query: StockMovementQueryDto) {
+  async findMovements(query: StockMovementQueryDto, user?: User) {
     const qb = this.movementRepo
       .createQueryBuilder('movement')
       .leftJoinAndSelect('movement.product', 'product')
@@ -443,6 +444,9 @@ export class ProductsService {
       .orderBy('movement.createdAt', 'DESC');
     if (query.productId) {
       qb.andWhere('movement.productId = :productId', { productId: query.productId });
+    }
+    if (user?.role === UserRole.BRIGADIER) {
+      qb.andWhere('movement.createdById = :userId', { userId: user.id });
     }
     const rows = await qb.getMany();
     return rows.map((r) => this.mapMovement(r));
