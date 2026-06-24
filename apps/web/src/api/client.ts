@@ -42,8 +42,17 @@ export function toUserMessage(err: unknown, fallback = 'Не удалось со
     if (err.status === 0 || isNetworkError(err.cause)) {
       return 'Backend не запущен. Запустите: npm run dev:api'
     }
-    if (err.status === 401 || err.status === 403) {
-      return 'Нет доступа. Войдите заново или проверьте права администратора.'
+    if (err.status === 401) {
+      if (!err.message || err.message === 'Unauthorized') {
+        return 'Сессия истекла. Войдите заново.'
+      }
+      return err.message
+    }
+    if (err.status === 403) {
+      if (!err.message || err.message === 'Forbidden') {
+        return 'Нет доступа. Войдите заново или проверьте права администратора.'
+      }
+      return err.message
     }
     return err.message || fallback
   }

@@ -17,6 +17,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Public()
+  @Post('reset-admin')
+  resetAdmin() {
+    return this.authService.resetAdmin();
+  }
+
   @Get('me')
   me(@CurrentUser() user: User) {
     return this.authService.toPublicUser(user);

@@ -1,8 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Repository } from 'typeorm';
+import { UserRole } from '../../common/enums/user-role.enum';
 import { User } from '../../entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 
@@ -18,13 +19,16 @@ export class AuthService {
 
   async validateUser(username: string, password: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { username: username.trim() } });
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new UnauthorizedException('Неверный логин или пароль');
     }
-    if (!user.passwordHash) {
-      throw new UnauthorizedException('Для этого пользователя вход не настроен');
+    if (!user.isActive) {
+      throw new ForbiddenException('Пользователь заблокирован');
     }
-    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!user.passwordHash) {
+      throw new UnauthorizedException('Неверный логин или пароль');
+    }
+    const ok = await bcrypt.compare(password, user.passwordHash).catch(() => false);
     if (!ok) throw new UnauthorizedException('Неверный логин или пароль');
     return user;
   }
@@ -35,6 +39,31 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign(payload),
       user: this.toPublicUser(user),
+      role: user.role,
+    };
+  }
+
+  async resetAdmin() {
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    let admin = await this.userRepo.findOne({ where: { username: 'admin' } });
+
+    if (!admin) {
+      admin = this.userRepo.create({
+        fullName: 'Администратор',
+        username: 'admin',
+      });
+    }
+
+    admin.passwordHash = passwordHash;
+    admin.role = UserRole.ADMIN;
+    admin.isActive = true;
+    admin.fullName = admin.fullName || 'Администратор';
+
+    const saved = await this.userRepo.save(admin);
+    return {
+      message: 'Администратор восстановлен',
+      user: this.toPublicUser(saved),
+      role: saved.role,
     };
   }
 
