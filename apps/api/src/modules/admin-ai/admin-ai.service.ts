@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { endOfDay, format, startOfDay, subDays } from 'date-fns';
 import { Repository } from 'typeorm';
@@ -45,6 +46,7 @@ function parsePhotoUrls(raw: string): string[] {
 @Injectable()
 export class AdminAiService {
   constructor(
+    private readonly configService: ConfigService,
     @InjectRepository(WorkLog)
     private readonly workLogRepo: Repository<WorkLog>,
     @InjectRepository(AttendanceRecord)
@@ -313,76 +315,94 @@ export class AdminAiService {
   }
 
   async answerQuestion(dto: AdminAiQuestionDto) {
-    const q = dto.question.toLowerCase();
-    const [todayLogs, attendance, overdueTasks, staleSections, lowProducts] = await Promise.all([
+    const apiKey = this.configService.get<string>('OPENAI_API_KEY');
+    if (!apiKey) {
+      throw new BadRequestException('AI-помощник не настроен. Укажите OPENAI_API_KEY на backend.');
+    }
+
+    const model = this.configService.get<string>('OPENAI_ADMIN_MODEL', 'gpt-4o-mini');
+    const [todayLogs, attendance, overdueTasks, staleSections, lowProducts, risks, summary] = await Promise.all([
       this.getTodayWorkLogs(),
       this.attendanceRepo.find({ where: { workDate: this.todayRange().today } }),
       this.getOverdueTasks(),
       this.getStaleSections(7),
       this.getLowProducts(),
+      this.buildRiskItems(),
+      this.getSummary(),
     ]);
 
-    if (q.includes('не уш') || q.includes('уход')) {
-      const names = attendance.filter((row) => !row.checkOutTime).map((row) => row.workerFullName);
-      return {
-        answer: names.length ? `Сегодня не отметили уход: ${names.join(', ')}.` : 'Все сотрудники с начатой сменой отметили уход.',
-      };
+    const context = {
+      today: this.todayRange().today,
+      summary,
+      currentMetrics: {
+        workReportsToday: todayLogs.length,
+        employeesInAttendance: attendance.length,
+        employeesWithoutCheckout: attendance.filter((row) => !row.checkOutTime).map((row) => row.workerFullName),
+        overdueTasks: overdueTasks.slice(0, 15).map((task) => ({
+          id: task.id,
+          title: task.description || task.workType?.name || `#${task.id}`,
+          dueDate: task.dueDate,
+          status: task.status,
+          object: task.section?.object?.name ?? null,
+          section: task.section?.code ?? null,
+        })),
+        staleSections: staleSections.slice(0, 15).map((row) => ({
+          id: row.section.id,
+          code: row.section.code,
+          name: row.section.name,
+          object: row.section.object?.name ?? null,
+          lastWork: row.lastWork,
+        })),
+        lowStockProducts: lowProducts.slice(0, 15).map((product) => ({
+          id: product.id,
+          name: product.name,
+          article: product.article,
+          currentQuantity: num(product.currentQuantity),
+          unit: product.unit,
+        })),
+      },
+      risks: risks.slice(0, 20),
+    };
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.2,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Ты AI-помощник администратора питомника. Отвечай по-русски, кратко и по делу. Используй только переданный контекст системы, не выдумывай отсутствующие данные. Если данных недостаточно, прямо скажи это. Окончательное решение принимает администратор.',
+          },
+          {
+            role: 'user',
+            content: `Вопрос администратора: ${dto.question}\n\nДанные платформы:\n${JSON.stringify(context, null, 2)}`,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new BadRequestException(`AI-помощник не смог выполнить запрос: ${text}`);
     }
 
-    if (q.includes('давно') || q.includes('обслуж')) {
-      return {
-        answer:
-          staleSections.length > 0
-            ? `Давно не обслуживались: ${staleSections
-                .slice(0, 10)
-                .map((row) => `${row.section.code} (${row.section.name})`)
-                .join(', ')}.`
-            : 'Участков без обслуживания более 7 дней не найдено.',
-      };
-    }
-
-    if (q.includes('товар') || q.includes('склад') || q.includes('заканч')) {
-      return {
-        answer:
-          lowProducts.length > 0
-            ? `Заканчиваются товары: ${lowProducts
-                .slice(0, 10)
-                .map((p) => `${p.name} (${num(p.currentQuantity)} ${p.unit ?? ''})`)
-                .join(', ')}.`
-            : 'Критически низких остатков не найдено.',
-      };
-    }
-
-    if (q.includes('просроч')) {
-      return {
-        answer:
-          overdueTasks.length > 0
-            ? `Просроченные задачи: ${overdueTasks
-                .slice(0, 10)
-                .map((task) => task.description || task.workType?.name || `#${task.id}`)
-                .join(', ')}.`
-            : 'Просроченных задач не найдено.',
-      };
-    }
-
-    if (q.includes('больше всего') || q.includes('лидер')) {
-      const since = subDays(new Date(), 7);
-      const logs = await this.workLogRepo
-        .createQueryBuilder('workLog')
-        .where('workLog.submittedAt >= :since', { since })
-        .getMany();
-      const counts = new Map<string, number>();
-      for (const log of logs) counts.set(log.workerFullName, (counts.get(log.workerFullName) ?? 0) + 1);
-      const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-      return {
-        answer: top.length
-          ? `Больше всего работ за неделю: ${top.map(([name, count]) => `${name} — ${count}`).join(', ')}.`
-          : 'За неделю работ не найдено.',
-      };
+    const body = (await response.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const answer = body.choices?.[0]?.message?.content?.trim();
+    if (!answer) {
+      throw new BadRequestException('AI-помощник не вернул ответ');
     }
 
     return {
-      answer: `Кратко по данным платформы: сегодня отчетов ${todayLogs.length}, сотрудников в табеле ${attendance.length}, просроченных задач ${overdueTasks.length}, низких остатков ${lowProducts.length}, участков без обслуживания более 7 дней ${staleSections.length}.`,
+      answer,
+      model,
     };
   }
 }
