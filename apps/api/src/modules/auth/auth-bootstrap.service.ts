@@ -13,21 +13,34 @@ export class AuthBootstrapService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const count = await this.userRepo.count();
-    if (count > 0) return;
-
-    const username = process.env.ADMIN_USERNAME ?? 'admin';
+    const username = (process.env.ADMIN_USERNAME ?? 'admin').trim();
     const password = process.env.ADMIN_PASSWORD ?? 'admin123';
 
-    await this.userRepo.save(
-      this.userRepo.create({
-        fullName: 'Администратор',
-        username,
-        passwordHash: await bcrypt.hash(password, 10),
-        role: UserRole.ADMIN,
-        isActive: true,
-      }),
-    );
-    console.log(`[auth] Создан администратор: логин "${username}"`);
+    let admin =
+      (await this.userRepo.findOne({ where: { username } })) ??
+      (await this.userRepo.findOne({ where: { role: UserRole.ADMIN } }));
+
+    if (!admin) {
+      await this.userRepo.save(
+        this.userRepo.create({
+          fullName: 'Администратор',
+          username,
+          passwordHash: await bcrypt.hash(password, 10),
+          role: UserRole.ADMIN,
+          isActive: true,
+        }),
+      );
+      console.log(`[auth] Создан администратор: логин "${username}"`);
+      return;
+    }
+
+    if (!process.env.ADMIN_PASSWORD) return;
+
+    admin.username = username;
+    admin.passwordHash = await bcrypt.hash(password, 10);
+    admin.role = UserRole.ADMIN;
+    admin.isActive = true;
+    await this.userRepo.save(admin);
+    console.log(`[auth] Пароль администратора синхронизирован из ADMIN_PASSWORD (логин "${username}")`);
   }
 }

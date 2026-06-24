@@ -97,6 +97,12 @@ jobs:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMAGE_PREFIX: ${{ steps.image_vars.outputs.image_prefix }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ADMIN_USERNAME: ${{ vars.ADMIN_USERNAME }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_ADMIN_MODEL: ${{ vars.OPENAI_ADMIN_MODEL }}
+          OPENAI_VISION_MODEL: ${{ vars.OPENAI_VISION_MODEL }}
           FRONTEND_URL: ${{ vars.FRONTEND_URL }}
           API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
         with:
@@ -105,7 +111,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           timeout: 60s
           command_timeout: 10m
-          envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_PREFIX,DB_PASSWORD,FRONTEND_URL,API_PUBLIC_URL,DEPLOY_PATH
+          envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_PREFIX,DB_PASSWORD,JWT_SECRET,ADMIN_USERNAME,ADMIN_PASSWORD,OPENAI_API_KEY,OPENAI_ADMIN_MODEL,OPENAI_VISION_MODEL,FRONTEND_URL,API_PUBLIC_URL,DEPLOY_PATH
           script: |
             set -euo pipefail
             echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
@@ -113,6 +119,12 @@ jobs:
             cat > "${DEPLOY_PATH}/.env" <<EOF
             API_IMAGE=${IMAGE_PREFIX}/pitomnik-api:prod-latest
             DB_PASSWORD=${DB_PASSWORD}
+            JWT_SECRET=${JWT_SECRET:-pitomnik-prod-secret}
+            ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+            ADMIN_PASSWORD=${ADMIN_PASSWORD}
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            OPENAI_ADMIN_MODEL=${OPENAI_ADMIN_MODEL:-gpt-4o}
+            OPENAI_VISION_MODEL=${OPENAI_VISION_MODEL:-gpt-4o}
             FRONTEND_URL=${FRONTEND_URL}
             API_PUBLIC_URL=${API_PUBLIC_URL}
             DB_MIGRATE=true
