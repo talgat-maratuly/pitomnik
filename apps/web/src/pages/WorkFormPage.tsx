@@ -14,6 +14,7 @@ import { defaultFormSettings, readFormSettings } from '@/lib/formSettings'
 import { uploadWorkPhotos } from '@/lib/photos'
 import { fetchActiveWorkTypes } from '@/lib/workTypesApi'
 import { fetchOpenTasksForSection, type ApiTask } from '@/api/tasksApi'
+import { useAuth } from '@/context/AuthContext'
 import type { Section, WorkType } from '@/lib/types'
 
 type FormSettings = typeof defaultFormSettings
@@ -63,6 +64,7 @@ function clearFormFields(setters: {
 }
 
 export function WorkFormPage() {
+  const { user } = useAuth()
   const [params] = useSearchParams()
   const { sectionCode } = useParams<{ sectionCode: string }>()
 
@@ -91,6 +93,7 @@ export function WorkFormPage() {
   const { geo, requestGeolocation } = useGeolocation()
   const selectedType = workTypes.find((w) => String(w.id) === workTypeId)
   const isOther = selectedType?.is_other ?? selectedType?.name === OTHER_WORK_TYPE
+  const sessionWorkerName = user?.fullName ?? ''
 
   async function loadWorkTypes() {
     const active = await fetchActiveWorkTypes()
@@ -111,6 +114,9 @@ export function WorkFormPage() {
       setComment,
       setPhotos,
     })
+    if (sessionWorkerName) {
+      setWorkerName(sessionWorkerName)
+    }
     void loadWorkTypes()
   }
 
@@ -119,6 +125,12 @@ export function WorkFormPage() {
     window.close()
     window.setTimeout(() => setCloseHint(true), 300)
   }
+
+  useEffect(() => {
+    if (sessionWorkerName && !workerName.trim()) {
+      setWorkerName(sessionWorkerName)
+    }
+  }, [sessionWorkerName, workerName])
 
   useEffect(() => {
     async function load() {
@@ -164,7 +176,7 @@ export function WorkFormPage() {
     setError(null)
 
     if (!section) return
-    if (!workerName.trim()) {
+    if (!sessionWorkerName && !workerName.trim()) {
       setError('Укажите ФИО работника')
       return
     }
@@ -320,8 +332,15 @@ export function WorkFormPage() {
           label="ФИО работника *"
           value={workerName}
           onChange={(e) => setWorkerName(e.target.value)}
+          readOnly={!!sessionWorkerName}
+          className={sessionWorkerName ? 'bg-slate-50 text-slate-600' : ''}
           required
         />
+        {sessionWorkerName && (
+          <p className="-mt-3 text-xs text-slate-500">
+            Используется текущая сессия: {sessionWorkerName}
+          </p>
+        )}
 
         <Select
           label="Вид работы *"

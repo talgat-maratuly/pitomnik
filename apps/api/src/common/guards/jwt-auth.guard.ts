@@ -14,11 +14,32 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) return true;
+    if (isPublic) {
+      const request = context.switchToHttp().getRequest<{ headers: { authorization?: string } }>();
+      if (!request.headers.authorization) return true;
+
+      return Promise.resolve(super.canActivate(context))
+        .then(() => true)
+        .catch(() => true);
+    }
     return super.canActivate(context);
   }
 
-  handleRequest<TUser = unknown>(err: unknown, user: TUser | false | null): TUser {
+  handleRequest<TUser = unknown>(
+    err: unknown,
+    user: TUser | false | null,
+    _info?: unknown,
+    context?: ExecutionContext,
+  ): TUser | null {
+    const isPublic = context
+      ? this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+          context.getHandler(),
+          context.getClass(),
+        ])
+      : false;
+    if (isPublic) {
+      return err || !user ? null : user;
+    }
     if (err || !user) {
       throw new UnauthorizedException('Сессия истекла. Войдите заново.');
     }

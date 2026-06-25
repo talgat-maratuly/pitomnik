@@ -40,6 +40,7 @@ export class SectionsController {
     return this.sectionsService.findByCode(code);
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.sectionsService.findOne(id);

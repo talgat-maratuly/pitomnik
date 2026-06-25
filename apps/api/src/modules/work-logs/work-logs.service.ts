@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { endOfDay, parseISO, startOfDay, startOfMonth, subDays } from 'date-fns';
 import { Repository } from 'typeorm';
@@ -103,7 +103,7 @@ export class WorkLogsService {
     return withPhotoUrlsArray(row);
   }
 
-  async create(dto: CreateWorkLogDto) {
+  async create(dto: CreateWorkLogDto, user?: User) {
     const section = await this.sectionRepo.findOne({ where: { id: dto.sectionId } });
     if (!section) throw new NotFoundException('Участок не найден');
 
@@ -121,10 +121,14 @@ export class WorkLogsService {
     }
 
     const hasCoords = dto.latitude != null && dto.longitude != null;
+    const workerFullName = (user?.fullName || dto.workerFullName || '').trim().replace(/\s+/g, ' ');
+    if (!workerFullName) {
+      throw new BadRequestException('Укажите ФИО работника');
+    }
 
     const row = this.workLogRepo.create({
       sectionId: dto.sectionId,
-      workerFullName: dto.workerFullName.trim().replace(/\s+/g, ' '),
+      workerFullName,
       workTypeId: dto.workTypeId ?? null,
       taskId: dto.taskId ?? null,
       customWorkType: dto.customWorkType?.trim() || null,

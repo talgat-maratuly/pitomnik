@@ -15,10 +15,10 @@ export class CreateWorkLogDto {
   @IsInt()
   sectionId!: number;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(255)
-  workerFullName!: string;
+  workerFullName?: string;
 
   @IsOptional()
   @Type(() => Number)

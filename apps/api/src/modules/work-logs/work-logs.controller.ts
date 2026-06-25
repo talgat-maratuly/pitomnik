@@ -39,8 +39,8 @@ export class WorkLogsController {
 
   @Public()
   @Post()
-  create(@Body() dto: CreateWorkLogDto) {
-    return this.workLogsService.create(dto);
+  create(@Body() dto: CreateWorkLogDto, @CurrentUser() user?: User) {
+    return this.workLogsService.create(dto, user);
   }
 
   @Get(':id')
