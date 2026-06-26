@@ -1,24 +1,38 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { QrPrintCard } from '@/components/QrPrintCard'
 import type { Section } from '@/lib/types'
 
 interface Props {
-  section: Section | null
+  section?: Section | null
   objectName: string
   formUrl: string
+  title?: string
+  code?: string
+  description?: ReactNode
   onClose: () => void
   autoPrint?: boolean
 }
 
-export function QrPrintModal({ section, objectName, formUrl, onClose, autoPrint }: Props) {
+export function QrPrintModal({
+  section,
+  objectName,
+  formUrl,
+  title,
+  code,
+  description,
+  onClose,
+  autoPrint,
+}: Props) {
+  const isOpen = !!section || !!title
+
   useEffect(() => {
-    if (!section || !autoPrint) return
+    if (!isOpen || !autoPrint) return
     const t = window.setTimeout(() => window.print(), 400)
     return () => clearTimeout(t)
-  }, [section, autoPrint, formUrl])
+  }, [isOpen, autoPrint, formUrl])
 
-  if (!section) return null
+  if (!isOpen) return null
 
   return createPortal(
     <div className="fixed inset-0 z-40 grid place-items-center p-4">
@@ -41,7 +55,14 @@ export function QrPrintModal({ section, objectName, formUrl, onClose, autoPrint 
           >
             ✕
           </button>
-          <QrPrintCard section={section} objectName={objectName} formUrl={formUrl} />
+          <QrPrintCard
+            section={section ?? undefined}
+            objectName={objectName}
+            formUrl={formUrl}
+            title={title}
+            code={code}
+            description={description}
+          />
           <button
             type="button"
             onClick={() => window.print()}

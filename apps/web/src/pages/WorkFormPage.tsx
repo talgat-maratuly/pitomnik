@@ -18,6 +18,8 @@ import { useAuth } from '@/context/AuthContext'
 import type { Section, WorkType } from '@/lib/types'
 
 type FormSettings = typeof defaultFormSettings
+const completionOptions = ['25%', '50%', '75%', '100%'] as const
+const OTHER_COMPLETION = 'OTHER'
 
 function SectionInfoHeader({ section }: { section: Section }) {
   const objectName = section.objects?.name ?? '—'
@@ -50,7 +52,8 @@ function clearFormFields(setters: {
   setWorkTypeId: (v: string) => void
   setTaskId: (v: string) => void
   setCustomWorkType: (v: string) => void
-  setVolume: (v: string) => void
+  setCompletionPercent: (v: string) => void
+  setCustomCompletionPercent: (v: string) => void
   setComment: (v: string) => void
   setPhotos: (v: FileList | null) => void
 }) {
@@ -58,7 +61,8 @@ function clearFormFields(setters: {
   setters.setWorkTypeId('')
   setters.setTaskId('')
   setters.setCustomWorkType('')
-  setters.setVolume('')
+  setters.setCompletionPercent('')
+  setters.setCustomCompletionPercent('')
   setters.setComment('')
   setters.setPhotos(null)
 }
@@ -86,7 +90,8 @@ export function WorkFormPage() {
   const [workTypeId, setWorkTypeId] = useState('')
   const [taskId, setTaskId] = useState('')
   const [customWorkType, setCustomWorkType] = useState('')
-  const [volume, setVolume] = useState('')
+  const [completionPercent, setCompletionPercent] = useState('')
+  const [customCompletionPercent, setCustomCompletionPercent] = useState('')
   const [comment, setComment] = useState('')
   const [photos, setPhotos] = useState<FileList | null>(null)
 
@@ -94,6 +99,10 @@ export function WorkFormPage() {
   const selectedType = workTypes.find((w) => String(w.id) === workTypeId)
   const isOther = selectedType?.is_other ?? selectedType?.name === OTHER_WORK_TYPE
   const sessionWorkerName = user?.fullName ?? ''
+  const selectedCompletionValue =
+    completionPercent === OTHER_COMPLETION
+      ? customCompletionPercent.trim()
+      : completionPercent
 
   async function loadWorkTypes() {
     const active = await fetchActiveWorkTypes()
@@ -110,7 +119,8 @@ export function WorkFormPage() {
       setWorkTypeId,
       setTaskId,
       setCustomWorkType,
-      setVolume,
+      setCompletionPercent,
+      setCustomCompletionPercent,
       setComment,
       setPhotos,
     })
@@ -188,8 +198,19 @@ export function WorkFormPage() {
       setError('Укажите вид работы вручную')
       return
     }
-    if (!volume.trim()) {
-      setError('Укажите объём выполненной работы')
+    if (!completionPercent) {
+      setError('Укажите процент выполнения')
+      return
+    }
+    if (completionPercent === OTHER_COMPLETION) {
+      const parsed = Number(customCompletionPercent)
+      if (!customCompletionPercent.trim() || !Number.isFinite(parsed) || parsed <= 0 || parsed > 100) {
+        setError('Укажите процент выполнения от 1 до 100')
+        return
+      }
+    }
+    if (!selectedCompletionValue) {
+      setError('Укажите процент выполнения')
       return
     }
     if (!photos?.length) {
@@ -209,7 +230,7 @@ export function WorkFormPage() {
         workTypeId: Number(workTypeId),
         taskId: taskId ? Number(taskId) : undefined,
         customWorkType: isOther ? customWorkType.trim() : null,
-        workVolume: volume.trim(),
+        workVolume: `${selectedCompletionValue.replace('%', '')}%`,
         comment: comment.trim() || '',
         photoUrls,
         latitude: geoResult.latitude,
@@ -223,7 +244,8 @@ export function WorkFormPage() {
         setWorkTypeId,
         setTaskId,
         setCustomWorkType,
-        setVolume,
+        setCompletionPercent,
+        setCustomCompletionPercent,
         setComment,
         setPhotos,
       })
@@ -377,13 +399,53 @@ export function WorkFormPage() {
           />
         )}
 
-        <Input
-          label="Объём выполненной работы *"
-          value={volume}
-          onChange={(e) => setVolume(e.target.value)}
-          placeholder="300 м²"
-          required
-        />
+        <div>
+          <p className="mb-2 block text-sm font-medium text-slate-700">Процент выполнения *</p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            {completionOptions.map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  setCompletionPercent(option)
+                  setCustomCompletionPercent('')
+                }}
+                className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${
+                  completionPercent === option
+                    ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                    : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-400'
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setCompletionPercent(OTHER_COMPLETION)}
+              className={`rounded-lg border px-3 py-2.5 text-sm font-semibold ${
+                completionPercent === OTHER_COMPLETION
+                  ? 'border-emerald-600 bg-emerald-50 text-emerald-800'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-emerald-400'
+              }`}
+            >
+              Другое
+            </button>
+          </div>
+          {completionPercent === OTHER_COMPLETION && (
+            <Input
+              label="Введите процент выполнения *"
+              type="number"
+              min={1}
+              max={100}
+              inputMode="numeric"
+              value={customCompletionPercent}
+              onChange={(e) => setCustomCompletionPercent(e.target.value)}
+              placeholder="Например, 60"
+              className="mt-3"
+              required
+            />
+          )}
+        </div>
 
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Фото *</label>

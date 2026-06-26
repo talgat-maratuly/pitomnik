@@ -1,19 +1,32 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import { QrPrintModal } from '@/components/QrPrintModal'
 import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
 import { Toast } from '@/components/Toast'
 import { Button } from '@/components/ui/Button'
 import { fetchSections } from '@/api/sectionsApi'
 import { API_ORIGIN, apiDownload, toUserMessage } from '@/api/client'
-import { buildCheckOutQrImageUrl, buildCheckOutUrl, buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import { buildCheckOutUrl, buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
 import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { Section } from '@/lib/types'
+
+function QrCanvas({ value, className = '' }: { value: string; className?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    if (!canvasRef.current) return
+    QRCode.toCanvas(canvasRef.current, value, { width: 200, margin: 2 })
+  }, [value])
+
+  return <canvas ref={canvasRef} className={className} />
+}
 
 export function QrPage() {
   const [sections, setSections] = useState<Section[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [printSectionCode, setPrintSectionCode] = useState<string | null>(null)
+  const [printCheckOut, setPrintCheckOut] = useState(false)
   const [autoPrint, setAutoPrint] = useState(false)
   const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -64,12 +77,18 @@ export function QrPage() {
 
   function closePrint() {
     setPrintSectionCode(null)
+    setPrintCheckOut(false)
     setAutoPrint(false)
+  }
+
+  function openCheckOutPrint() {
+    setPrintCheckOut(true)
+    setAutoPrint(true)
   }
 
   async function downloadCheckOutQr() {
     try {
-      const blob = await apiDownload('/attendance/check-out/qr.png')
+      const blob = await apiDownload('/qr/checkout')
       if (!blob.type.includes('image/png')) {
         throw new Error('Expected PNG image')
       }
@@ -97,11 +116,9 @@ export function QrPage() {
           Один QR для отметки ухода в конце смены. Приход фиксируется автоматически первым отчётом с участка.
         </p>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <img
-            src={buildCheckOutQrImageUrl()}
-            alt="QR уход"
-            className="h-[120px] w-[120px] rounded-lg border bg-white p-1"
-          />
+          <div className="rounded-lg border bg-white p-1">
+            <QrCanvas value={checkOutUrl} className="h-[120px] w-[120px]" />
+          </div>
           <div className="space-y-2 text-sm">
             <a href={checkOutUrl} target="_blank" rel="noreferrer" className="block break-all text-emerald-700 underline">
               {checkOutUrl}
@@ -109,6 +126,9 @@ export function QrPage() {
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={() => void downloadCheckOutQr()}>
                 Скачать PNG
+              </Button>
+              <Button variant="ghost" onClick={openCheckOutPrint}>
+                Печать
               </Button>
               <Button onClick={() => window.open(checkOutUrl, '_blank')}>Открыть форму ухода</Button>
             </div>
@@ -182,6 +202,19 @@ export function QrPage() {
         section={printSection}
         objectName={printSection?.objects?.name ?? '—'}
         formUrl={printSection ? buildWorkFormUrlBySectionCode(printSection.code) : ''}
+        onClose={closePrint}
+        autoPrint={autoPrint}
+      />
+
+      <QrPrintModal
+        objectName="Общий QR для отметки ухода"
+        formUrl={printCheckOut ? checkOutUrl : ''}
+        title={printCheckOut ? 'QR «Уход»' : undefined}
+        description={
+          <>
+            <strong>Отсканируйте QR-код</strong> и отметьте уход в конце смены.
+          </>
+        }
         onClose={closePrint}
         autoPrint={autoPrint}
       />

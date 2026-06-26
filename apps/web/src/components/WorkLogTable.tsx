@@ -32,7 +32,7 @@ export function WorkLogTable({ logs, loading, canReview, onReview }: Props) {
             <th className="px-3 py-3">Участок</th>
             <th className="px-3 py-3">Культура</th>
             <th className="px-3 py-3">Вид работы</th>
-            <th className="px-3 py-3">Объем</th>
+            <th className="px-3 py-3">Процент выполнения</th>
             <th className="px-3 py-3">Комментарий</th>
             <th className="px-3 py-3">Фото</th>
             <th className="px-3 py-3">Геолокация</th>

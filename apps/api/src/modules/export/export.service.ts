@@ -56,7 +56,7 @@ export class ExportService {
       { header: 'Участок', key: 'section', width: 18 },
       { header: 'Культура', key: 'culture', width: 14 },
       { header: 'Вид работы', key: 'workType', width: 18 },
-      { header: 'Объем', key: 'volume', width: 14 },
+      { header: 'Процент выполнения', key: 'volume', width: 20 },
       { header: 'Комментарий', key: 'comment', width: 24 },
       { header: 'Фото', key: 'photos', width: 40 },
       { header: 'Геолокация', key: 'geo', width: 36 },
