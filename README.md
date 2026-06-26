@@ -90,7 +90,7 @@ DB_MIGRATE=true
 |--------|-----|
 | Объекты, участки, журнал, виды работ | PostgreSQL |
 | Фото | `apps/api/uploads/photos/` |
-| Тексты формы | localStorage браузера |
+| Настройки QR-формы | PostgreSQL |
 
 ## Цепочка
 

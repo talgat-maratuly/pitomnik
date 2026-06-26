@@ -21,6 +21,7 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ProductsModule } from './modules/products/products.module';
 import { AiAgronomModule } from './modules/ai-agronom/ai-agronom.module';
 import { AdminAiModule } from './modules/admin-ai/admin-ai.module';
+import { FormSettingsModule } from './modules/form-settings/form-settings.module';
 import { getTypeOrmPostgresFromConfig } from './database/database.config';
 import {
   AiAgronomAnalysis,
@@ -34,6 +35,7 @@ import {
   StockMovement,
   Task,
   User,
+  FormSetting,
   WorkLog,
   WorkType,
 } from './entities';
@@ -68,6 +70,7 @@ import {
           Product,
           StockMovement,
           AiAgronomAnalysis,
+          FormSetting,
         ],
         migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
         migrationsRun: config.get('DB_MIGRATE') !== 'false',
@@ -81,6 +84,7 @@ import {
     ProductsModule,
     AiAgronomModule,
     AdminAiModule,
+    FormSettingsModule,
     ObjectsModule,
     SectionsModule,
     WorkTypesModule,

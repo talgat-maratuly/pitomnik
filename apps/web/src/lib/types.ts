@@ -60,12 +60,24 @@ export interface WorkLogFilters {
 }
 
 export interface FormSettings {
-  id: number
-  form_title: string
-  form_description: string | null
-  form_submit_text: string
-  form_success_text: string
-  form_hints: string | null
-  created_at: string
-  updated_at: string
+  formTitle: string
+  formDescription: string | null
+  formSubmitText: string
+  formSuccessText: string
+  formHints: string | null
+  fields: FormFieldSetting[]
+}
+
+export type FormFieldType = 'text' | 'number' | 'percent' | 'select' | 'boolean' | 'comment' | 'photo'
+
+export interface FormFieldSetting {
+  id: string
+  label: string
+  type: FormFieldType
+  hint: string | null
+  required: boolean
+  visible: boolean
+  order: number
+  system: boolean
+  options?: string[]
 }

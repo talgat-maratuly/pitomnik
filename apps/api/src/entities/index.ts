@@ -11,3 +11,4 @@ export { BrigadeMember } from './brigade-member.entity';
 export { Task } from './task.entity';
 export { Product } from './product.entity';
 export { StockMovement } from './stock-movement.entity';
+export { FormSetting } from './form-setting.entity';
