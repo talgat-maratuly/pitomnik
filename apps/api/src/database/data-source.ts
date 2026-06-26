@@ -4,6 +4,7 @@ import { getTypeOrmPostgresOptions } from './database.config';
 import {
   Brigade,
   BrigadeMember,
+  FormSetting,
   NurseryObject,
   Section,
   SectionCodeCounter,
@@ -27,6 +28,7 @@ export default new DataSource({
     Brigade,
     BrigadeMember,
     Task,
+    FormSetting,
   ],
   migrations: [__dirname + '/migrations/*{.ts,.js}'],
 });
