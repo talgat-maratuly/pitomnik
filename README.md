@@ -25,7 +25,7 @@ cp apps/web/.env.example apps/web/.env
 
 ### 2. PostgreSQL
 
-Локально орнатылған PostgreSQL қажет. `pitomnik` базасын жасап, `apps/api/.env` параметрлерін өз ортаңызға сәйкес толтырыңыз.
+Локально орнатылған PostgreSQL 18 қажет (production-пен бірдей). `pitomnik` базасын жасап, `apps/api/.env` параметрлерін өз ортаңызға сәйкес толтырыңыз.
 
 ### 3. Миграции и seed (первый раз)
 

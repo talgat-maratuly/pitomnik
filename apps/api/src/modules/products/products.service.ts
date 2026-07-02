@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import ExcelJS from 'exceljs';
-import { Brackets, Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { ProductSource } from '../../common/enums/product-source.enum';
 import { StockMovementType } from '../../common/enums/stock-movement-type.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
@@ -159,22 +159,21 @@ export class ProductsService {
 
   private async findExisting(parsed: ParsedExcelProduct): Promise<Product | null> {
     if (!parsed.code && !parsed.article) return null;
-    const qb = this.productRepo.createQueryBuilder('product');
-    qb.where(
-      new Brackets((where) => {
-        if (parsed.code) where.orWhere('product.code = :code', { code: parsed.code });
-        if (parsed.article) where.orWhere('product.article = :article', { article: parsed.article });
-      }),
-    );
-    qb.orderBy(
-      `CASE
-        WHEN product.code = :code THEN 0
-        WHEN product.article = :article THEN 1
-        ELSE 2
-      END`,
-      'ASC',
-    ).setParameters({ code: parsed.code ?? '', article: parsed.article ?? '' });
-    return qb.getOne();
+
+    const [byCode, byArticle] = await Promise.all([
+      parsed.code ? this.productRepo.findOne({ where: { code: parsed.code } }) : null,
+      parsed.article ? this.productRepo.findOne({ where: { article: parsed.article } }) : null,
+    ]);
+
+    // Same Excel row points to two different products by unique keys.
+    if (byCode && byArticle && byCode.id !== byArticle.id) {
+      throw new BadRequestException(
+        `Конфликт данных импорта: код "${parsed.code}" и артикул "${parsed.article}" относятся к разным товарам`,
+      );
+    }
+
+    // Article has stricter business meaning during sync, so prefer it.
+    return byArticle ?? byCode;
   }
 
   async findAll(query: ProductQueryDto) {
@@ -329,7 +328,16 @@ export class ProductsService {
         continue;
       }
 
-      let product = await this.findExisting(parsed);
+      let product: Product | null;
+      try {
+        product = await this.findExisting(parsed);
+      } catch (error) {
+        if (error instanceof BadRequestException) {
+          skipped += 1;
+          continue;
+        }
+        throw error;
+      }
       const isNew = !product;
       product ??= this.productRepo.create({
         incomingQuantity: '0',
@@ -338,7 +346,17 @@ export class ProductsService {
 
       this.applyExcelProduct(product, parsed);
 
-      const saved = await this.productRepo.save(product);
+      let saved: Product;
+      try {
+        saved = await this.productRepo.save(product);
+      } catch (error) {
+        if (error instanceof QueryFailedError && (error as { driverError?: { code?: string } }).driverError?.code === '23505') {
+          // Duplicate unique key in source file or race condition: skip this row and continue import.
+          skipped += 1;
+          continue;
+        }
+        throw error;
+      }
       seenProductIds.add(saved.id);
       await this.movementRepo.save(
         this.movementRepo.create({

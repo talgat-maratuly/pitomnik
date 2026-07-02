@@ -32,7 +32,7 @@ services:
 
   pitomnik-postgres:
     container_name: pitomnik-postgres
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     restart: always
     environment:
       TZ: UTC
@@ -43,7 +43,7 @@ services:
     expose:
       - '5432'
     volumes:
-      - pitomnik_postgres_data:/var/lib/postgresql/data
+      - pitomnik_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres -d pitomnik']
       interval: 10s
