@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { endOfDay, parseISO, startOfDay, startOfMonth, subDays } from 'date-fns';
+import { endOfDay, isValid, parseISO, startOfDay, startOfMonth, subDays } from 'date-fns';
 import { Repository } from 'typeorm';
 import { serializePhotoUrls } from '../../common/photo-urls';
 import { mapWorkLogsWithPhotos, withPhotoUrlsArray } from '../../common/work-log-response';
@@ -33,15 +33,25 @@ export class WorkLogsService {
     private readonly attendanceService: AttendanceService,
   ) {}
 
+  private parseQueryDateOrThrow(value: string, field: 'dateFrom' | 'dateTo'): Date {
+    const parsed = parseISO(value);
+    if (!isValid(parsed)) {
+      throw new BadRequestException(`Некорректная дата в параметре "${field}"`);
+    }
+    return parsed;
+  }
+
   private applyFilters(qb: ReturnType<Repository<WorkLog>['createQueryBuilder']>, query: WorkLogQueryDto) {
     if (query.dateFrom) {
+      const parsedDateFrom = this.parseQueryDateOrThrow(query.dateFrom, 'dateFrom');
       qb.andWhere('workLog.submittedAt >= :dateFrom', {
-        dateFrom: startOfDay(parseISO(query.dateFrom)),
+        dateFrom: startOfDay(parsedDateFrom),
       });
     }
     if (query.dateTo) {
+      const parsedDateTo = this.parseQueryDateOrThrow(query.dateTo, 'dateTo');
       qb.andWhere('workLog.submittedAt <= :dateTo', {
-        dateTo: endOfDay(parseISO(query.dateTo)),
+        dateTo: endOfDay(parsedDateTo),
       });
     }
     if (query.workerFullName?.trim()) {
