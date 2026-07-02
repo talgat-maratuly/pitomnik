@@ -42,13 +42,17 @@ export class WorkLogsService {
   }
 
   private applyFilters(qb: ReturnType<Repository<WorkLog>['createQueryBuilder']>, query: WorkLogQueryDto) {
-    if (query.dateFrom) {
+    // Frontend may send `all` when user didn't choose dates.
+    const dateFromNormalized = query.dateFrom?.trim().toLowerCase();
+    const dateToNormalized = query.dateTo?.trim().toLowerCase();
+
+    if (dateFromNormalized && dateFromNormalized !== 'all') {
       const parsedDateFrom = this.parseQueryDateOrThrow(query.dateFrom, 'dateFrom');
       qb.andWhere('workLog.submittedAt >= :dateFrom', {
         dateFrom: startOfDay(parsedDateFrom),
       });
     }
-    if (query.dateTo) {
+    if (dateToNormalized && dateToNormalized !== 'all') {
       const parsedDateTo = this.parseQueryDateOrThrow(query.dateTo, 'dateTo');
       qb.andWhere('workLog.submittedAt <= :dateTo', {
         dateTo: endOfDay(parsedDateTo),
