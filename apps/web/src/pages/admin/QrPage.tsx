@@ -5,8 +5,9 @@ import { DeleteSectionDialog } from '@/components/DeleteSectionDialog'
 import { Toast } from '@/components/Toast'
 import { Button } from '@/components/ui/Button'
 import { fetchSections } from '@/api/sectionsApi'
-import { API_ORIGIN, apiDownload, toUserMessage } from '@/api/client'
+import { API_ORIGIN, toUserMessage } from '@/api/client'
 import { buildCheckOutUrl, buildQrImageUrl, buildWorkFormUrlBySectionCode } from '@/lib/appConfig'
+import { downloadQrPrintCardPng } from '@/lib/downloadQrCard'
 import { onSectionsChanged } from '@/lib/sectionEvents'
 import type { Section } from '@/lib/types'
 
@@ -30,6 +31,7 @@ export function QrPage() {
   const [autoPrint, setAutoPrint] = useState(false)
   const [sectionToDelete, setSectionToDelete] = useState<Section | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null)
 
   const loadSections = useCallback(async () => {
     try {
@@ -54,12 +56,24 @@ export function QrPage() {
   const printSection = printSectionCode
     ? sections.find((s) => s.code === printSectionCode) ?? null
     : null
+  const checkOutUrl = buildCheckOutUrl()
 
-  function downloadQrPng(section: Section) {
-    const a = document.createElement('a')
-    a.href = buildQrImageUrl(section.code)
-    a.download = `qr-${section.code}.png`
-    a.click()
+  async function downloadQrPng(section: Section) {
+    const key = `section-${section.code}`
+    setDownloadingKey(key)
+    try {
+      await downloadQrPrintCardPng({
+        section,
+        objectName: section.objects?.name ?? '—',
+        formUrl: buildWorkFormUrlBySectionCode(section.code),
+        filename: `QR_${section.code}_карточка.png`,
+      })
+    } catch (err) {
+      console.error('[qr/section-download]', err)
+      setError('Не удалось скачать карточку QR. Попробуйте еще раз.')
+    } finally {
+      setDownloadingKey(null)
+    }
   }
 
   function handleSectionDeleted(id: number) {
@@ -87,24 +101,26 @@ export function QrPage() {
   }
 
   async function downloadCheckOutQr() {
+    setDownloadingKey('checkout')
     try {
-      const blob = await apiDownload('/qr/checkout')
-      if (!blob.type.includes('image/png')) {
-        throw new Error('Expected PNG image')
-      }
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'qr-attendance-check-out.png'
-      a.click()
-      URL.revokeObjectURL(url)
+      await downloadQrPrintCardPng({
+        objectName: 'Общий QR для отметки ухода',
+        formUrl: checkOutUrl,
+        title: 'QR «Уход»',
+        description: (
+          <>
+            <strong>Отсканируйте QR-код</strong> и отметьте уход в конце смены.
+          </>
+        ),
+        filename: 'QR_Уход_карточка.png',
+      })
     } catch (err) {
       console.error('[qr/check-out-download]', err)
-      setError('Не удалось скачать QR-код. Попробуйте еще раз.')
+      setError('Не удалось скачать карточку QR. Попробуйте еще раз.')
+    } finally {
+      setDownloadingKey(null)
     }
   }
-
-  const checkOutUrl = buildCheckOutUrl()
 
   return (
     <div className="no-print space-y-6">
@@ -124,8 +140,12 @@ export function QrPage() {
               {checkOutUrl}
             </a>
             <div className="flex flex-wrap gap-2">
-              <Button variant="secondary" onClick={() => void downloadCheckOutQr()}>
-                Скачать PNG
+              <Button
+                variant="secondary"
+                disabled={downloadingKey === 'checkout'}
+                onClick={() => void downloadCheckOutQr()}
+              >
+                {downloadingKey === 'checkout' ? 'Скачивание…' : 'Скачать PNG'}
               </Button>
               <Button variant="ghost" onClick={openCheckOutPrint}>
                 Печать
@@ -174,8 +194,12 @@ export function QrPage() {
                     </td>
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" onClick={() => downloadQrPng(s)}>
-                          Скачать PNG
+                        <Button
+                          variant="secondary"
+                          disabled={downloadingKey === `section-${s.code}`}
+                          onClick={() => void downloadQrPng(s)}
+                        >
+                          {downloadingKey === `section-${s.code}` ? 'Скачивание…' : 'Скачать PNG'}
                         </Button>
                         <Button onClick={() => window.open(formUrl, '_blank')}>Открыть форму</Button>
                         <Button variant="ghost" onClick={() => openPrint(s)}>

@@ -11,6 +11,7 @@ interface Props {
   code?: string
   description?: ReactNode
   className?: string
+  onReady?: () => void
 }
 
 export function QrPrintCard({
@@ -21,6 +22,7 @@ export function QrPrintCard({
   code,
   description,
   className = '',
+  onReady,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const displayTitle = title ?? section?.name ?? 'QR-код'
@@ -28,8 +30,18 @@ export function QrPrintCard({
 
   useEffect(() => {
     if (!canvasRef.current) return
+    let cancelled = false
     QRCode.toCanvas(canvasRef.current, formUrl, { width: 200, margin: 2 })
-  }, [formUrl])
+      .then(() => {
+        if (!cancelled) onReady?.()
+      })
+      .catch(() => {
+        if (!cancelled) onReady?.()
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [formUrl, onReady])
 
   return (
     <div
