@@ -47,13 +47,13 @@ export class WorkLogsService {
     const dateToNormalized = query.dateTo?.trim().toLowerCase();
 
     if (dateFromNormalized && dateFromNormalized !== 'all') {
-      const parsedDateFrom = this.parseQueryDateOrThrow(query.dateFrom, 'dateFrom');
+      const parsedDateFrom = this.parseQueryDateOrThrow(dateFromNormalized, 'dateFrom');
       qb.andWhere('workLog.submittedAt >= :dateFrom', {
         dateFrom: startOfDay(parsedDateFrom),
       });
     }
     if (dateToNormalized && dateToNormalized !== 'all') {
-      const parsedDateTo = this.parseQueryDateOrThrow(query.dateTo, 'dateTo');
+      const parsedDateTo = this.parseQueryDateOrThrow(dateToNormalized, 'dateTo');
       qb.andWhere('workLog.submittedAt <= :dateTo', {
         dateTo: endOfDay(parsedDateTo),
       });
